@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Logging in...</title>
+</head>
+
+<body>
+    <p>Authenticating...</p>
+    <script>
+        localStorage.setItem('auralis_token', '{{ token }}');
+        localStorage.setItem('auralis_user', JSON.stringify({ name: '{{ user_name }}' }));
+        window.location.href = '/dashboard/';
+    </script>
+</body>
+
+</html>

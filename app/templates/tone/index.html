@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <!-- Reuse Sidebar (Ideally this would be a component) -->
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:flex flex-col">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-brand-500 to-brand-600 bg-clip-text text-transparent">
+                Auralis</h1>
+            <a href="/" class="text-xs text-gray-500 mt-1 hover:text-brand-500">← Back to Dashboard</a>
+        </div>
+        <!-- Simplified Nav for Tone Page -->
+        <nav class="flex-grow p-4 space-y-1">
+            <div class="p-4 bg-brand-50 dark:bg-brand-900/20 rounded-xl">
+                <h3 class="font-semibold text-brand-700 dark:text-brand-400 mb-2">Tone Engine</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Upload past emails to help Auralis learn your unique
+                    voice.</p>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+        <header
+            class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 p-4 sticky top-0 z-20">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Tone Learning Center</h2>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 scroll-smooth">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Input Section -->
+                <div class="space-y-6">
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Train Your Twin</h3>
+                        <p class="text-sm text-gray-500 mb-4">Paste recent emails or messages here.</p>
+
+                        <textarea id="sampleText" rows="8"
+                            class="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                            placeholder="Hey Team, just wanted to follow up on..."></textarea>
+
+                        <button onclick="analyzeTone()"
+                            class="mt-4 w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 rounded-lg shadow-lg shadow-brand-500/30 transition-all">
+                            Analyze Tone
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="space-y-6">
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                        <h3 class="text-lg font-semibold mb-6 text-gray-900 dark:text-white">Your Voice Profile</h3>
+
+                        <div class="space-y-6">
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Formality</span>
+                                    <span id="formalityVal" class="text-sm font-bold text-brand-600">50%</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div id="formalityBar"
+                                        class="h-full bg-brand-500 rounded-full transition-all duration-1000"
+                                        style="width: 50%"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Empathy</span>
+                                    <span id="empathyVal" class="text-sm font-bold text-brand-600">50%</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div id="empathyBar"
+                                        class="h-full bg-purple-500 rounded-full transition-all duration-1000"
+                                        style="width: 50%"></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Verbosity</span>
+                                    <span id="verbosityVal" class="text-sm font-bold text-brand-600">50%</span>
+                                </div>
+                                <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div id="verbosityBar"
+                                        class="h-full bg-green-500 rounded-full transition-all duration-1000"
+                                        style="width: 50%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="mt-8 p-4 bg-brand-50 dark:bg-brand-900/20 rounded-lg border border-brand-100 dark:border-brand-800">
+                            <h4 class="text-sm font-bold text-brand-800 dark:text-brand-300 mb-1">Current Style</h4>
+                            <p id="styleLabel" class="text-sm text-brand-600 dark:text-brand-400">Neutral</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    checkAuth();
+
+    async function loadProfile() {
+        try {
+            const result = await apiCall('/tone/profile');
+            updateUI(result);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function analyzeTone() {
+        const text = document.getElementById('sampleText').value;
+        if (!text) return alert('Please enter some text');
+
+        const btn = document.querySelector('button');
+        btn.textContent = 'Analyzing...';
+        btn.disabled = true;
+
+        try {
+            const result = await apiCall('/tone/analyze', 'POST', { text });
+            updateUI(result.profile);
+            alert('Analysis Complete!');
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            btn.textContent = 'Analyze Tone';
+            btn.disabled = false;
+        }
+    }
+
+    function updateUI(profile) {
+        document.getElementById('formalityBar').style.width = profile.formality + '%';
+        document.getElementById('formalityVal').textContent = profile.formality + '%';
+
+        document.getElementById('empathyBar').style.width = profile.empathy + '%';
+        document.getElementById('empathyVal').textContent = profile.empathy + '%';
+
+        document.getElementById('verbosityBar').style.width = profile.verbosity + '%';
+        document.getElementById('verbosityVal').textContent = profile.verbosity + '%';
+
+        document.getElementById('styleLabel').textContent = profile.style || 'Neutral';
+    }
+
+    loadProfile();
+</script>
+{% endblock %}

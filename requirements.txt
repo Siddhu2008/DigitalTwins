@@ -1,0 +1,11 @@
+flask
+Flask-PyMongo
+pymongo
+python-dotenv
+flask-cors
+werkzeug
+PyJWT
+authlib
+requests
+flask-socketio
+simple-websocket

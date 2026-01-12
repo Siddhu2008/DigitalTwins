@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex-grow flex items-center justify-center p-6 bg-brand-50 dark:bg-gray-900">
+    <div
+        class="w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+        <div class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create Account</h1>
+            <p class="text-gray-500 dark:text-gray-400">Join Auralis and clone your communication style</p>
+        </div>
+
+        <form id="signupForm" class="space-y-5">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full
+                    Name</label>
+                <input type="text" id="name" name="name" required
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white transition-all">
+            </div>
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email
+                    Address</label>
+                <input type="email" id="email" name="email" required
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white transition-all">
+            </div>
+            <div>
+                <label for="password"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                <input type="password" id="password" name="password" required
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white transition-all">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="role"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+                    <select id="role" name="role"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="student">Student</option>
+                        <option value="professional" selected>Professional</option>
+                        <option value="founder">Founder</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="tone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base
+                        Tone</label>
+                    <select id="tone" name="tone"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <option value="formal" selected>Formal</option>
+                        <option value="semi-formal">Semi-Formal</option>
+                        <option value="casual">Casual</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="errorMessage" class="hidden text-red-500 text-sm text-center"></div>
+
+            <button type="submit"
+                class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-brand-500/30">
+                Create Account
+            </button>
+
+            <div class="relative flex py-5 items-center">
+                <div class="flex-grow border-t border-gray-300"></div>
+                <span class="flex-shrink-0 mx-4 text-gray-400">Or</span>
+                <div class="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            <a href="/auth/google"
+                class="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02]">
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5" alt="Google">
+                Continue with Google
+            </a>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+            Already have an account?
+            <a href="/auth/login" class="text-brand-600 hover:text-brand-500 font-medium hover:underline">Sign in</a>
+        </p>
+    </div>
+</div>
+
+<script>
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            role: document.getElementById('role').value,
+            tone: document.getElementById('tone').value
+        };
+        const errorDiv = document.getElementById('errorMessage');
+
+        try {
+            const result = await apiCall('/auth/signup', 'POST', formData);
+            localStorage.setItem('auralis_token', result.token);
+            // Optionally auto-login or redirect
+            window.location.href = '/dashboard/';
+        } catch (err) {
+            errorDiv.textContent = err.message;
+            errorDiv.classList.remove('hidden');
+        }
+    });
+
+    // Check if already logged in
+    if (localStorage.getItem('auralis_token')) {
+        window.location.href = '/dashboard/';
+    }
+</script>
+{% endblock %}

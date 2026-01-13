@@ -20,33 +20,50 @@
             </h1>
         </div>
 
-        <nav class="flex-grow space-y-1">
-            <button onclick="switchTab('meetings')" id="nav-meetings" class="nav-item active-nav">
-                <span class="material-symbols-outlined mr-4">calendar_today</span>
-                Meetings
-            </button>
-            <button onclick="switchTab('calls')" id="nav-calls" class="nav-item">
-                <span class="material-symbols-outlined mr-4">videocam</span>
-                Calls
-            </button>
+        <nav class="flex-grow px-3 space-y-6 overflow-y-auto custom-scrollbar">
+            <!-- Communication Section -->
+            <div>
+                <p class="px-4 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">
+                    Communication</p>
+                <div class="space-y-1">
+                    <button onclick="switchTab('meetings')" id="nav-meetings" class="nav-item active-nav">
+                        <span class="material-symbols-outlined">calendar_today</span>
+                        <span>Meetings</span>
+                    </button>
+                    <button onclick="switchTab('calls')" id="nav-calls" class="nav-item">
+                        <span class="material-symbols-outlined">videocam</span>
+                        <span>Calls</span>
+                    </button>
+                </div>
+            </div>
 
-            <div class="h-px bg-gray-100 dark:bg-gray-800 my-4 mx-4"></div>
+            <!-- Workspace Section -->
+            <div>
+                <p class="px-4 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">
+                    Workspace</p>
+                <div class="space-y-1">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item">
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <a href="/tone/" class="nav-item">
+                        <span class="material-symbols-outlined">graphic_eq</span>
+                        <span>Tone Learning</span>
+                    </a>
+                </div>
+            </div>
 
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item">
-                <span class="material-symbols-outlined mr-4">dashboard</span>
-                Dashboard
-            </button>
-            <a href="/tone/" class="nav-item">
-                <span class="material-symbols-outlined mr-4">graphic_eq</span>
-                Tone Learning
-            </a>
-
-            <div class="h-px bg-gray-100 dark:bg-gray-800 my-4 mx-4"></div>
-
-            <a href="/settings/" class="nav-item">
-                <span class="material-symbols-outlined mr-4">settings</span>
-                Settings
-            </a>
+            <!-- System Section -->
+            <div>
+                <p class="px-4 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-3">
+                    System</p>
+                <div class="space-y-1">
+                    <a href="/settings/" class="nav-item">
+                        <span class="material-symbols-outlined">settings</span>
+                        <span>Settings</span>
+                    </a>
+                </div>
+            </div>
         </nav>
 
         <div class="p-4 mt-auto border-t border-gray-100 dark:border-gray-800">
@@ -216,15 +233,20 @@
     }
 
     .nav-item {
-        @apply flex items-center px-6 py-3.5 text-gray-500 dark:text-gray-400 font-medium transition-all mr-2 w-full text-left rounded-r-full;
+        @apply flex items-center gap-4 px-4 py-3 text-[#5f6368] dark:text-[#bdc1c6] font-medium transition-all w-full text-left rounded-xl;
+        font-size: 14px;
     }
 
     .nav-item:hover {
-        @apply bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200;
+        @apply bg-gray-100 dark:bg-gray-800 text-[#202124] dark:text-white;
     }
 
     .active-nav {
         @apply text-[#1a73e8] bg-[#e8f0fe] dark:bg-[#1a73e8]/10 font-bold;
+    }
+
+    .active-nav span.material-symbols-outlined {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
     @keyframes fade-in {

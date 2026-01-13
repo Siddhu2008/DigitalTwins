@@ -43,8 +43,8 @@ function checkAuth() {
     const token = localStorage.getItem('auralis_token');
     const path = window.location.pathname;
     if (!token && !path.startsWith('/auth')) {
-        window.location.href = '/auth/login';
-    } else if (token && path.startsWith('/auth')) {
+        window.location.href = '/auth/loading';
+    } else if (token && (path === '/auth/login' || path === '/auth/signup' || path === '/auth/loading')) {
         window.location.href = '/dashboard/';
     }
 }

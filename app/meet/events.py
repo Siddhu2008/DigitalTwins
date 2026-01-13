@@ -61,6 +61,33 @@ def handle_chat(data):
         'sid': request.sid
     }, room=meeting_id)
 
+@socketio.on('caption_broadcast')
+def handle_caption(data):
+    # Find meeting room for this SID
+    for mid, users in meetings.items():
+        if request.sid in users:
+            name = users[request.sid]['name']
+            emit('caption_broadcast', {
+                'from': name,
+                'text': data['text']
+            }, room=mid, include_self=False)
+            break
+
+@socketio.on('raise_hand')
+def handle_raise_hand():
+    for mid, users in meetings.items():
+        if request.sid in users:
+            name = users[request.sid]['name']
+            emit('hand_raised', {'name': name, 'sid': request.sid}, room=mid)
+            break
+
+@socketio.on('reaction')
+def handle_reaction(data):
+    for mid, users in meetings.items():
+        if request.sid in users:
+            emit('reaction', {'emoji': data.get('emoji'), 'sid': request.sid}, room=mid, include_self=False)
+            break
+
 @socketio.on('disconnect')
 def handle_disconnect():
     sid = request.sid

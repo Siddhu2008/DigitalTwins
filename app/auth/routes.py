@@ -1,8 +1,39 @@
-from flask import request, jsonify, render_template, url_for
+from flask import request, jsonify, render_template, url_for, session
 from app.auth import auth_bp
 from app.auth.services import create_user, get_user_by_email, verify_password, create_or_update_google_user
 
-from app.auth.utils import generate_token
+from app.auth.utils import generate_token, token_required
+from app.db import mongo
+import bson
+
+@auth_bp.route('/search_users', methods=['GET'])
+@token_required
+def search_users(current_user):
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify([]), 200
+        
+    # Search by name or email, exclude current user
+    users = mongo.db.users.find({
+        '$and': [
+            {'_id': {'$ne': current_user['_id']}},
+            {'$or': [
+                {'name': {'$regex': query, '$options': 'i'}},
+                {'email': {'$regex': query, '$options': 'i'}}
+            ]}
+        ]
+    }, {'password': 0, 'google_token': 0}).limit(10)
+    
+    result = []
+    for u in users:
+        result.append({
+            'id': str(u['_id']),
+            'name': u['name'],
+            'email': u['email'],
+            'avatar': u.get('avatar')
+        })
+        
+    return jsonify(result), 200
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -28,9 +59,14 @@ def signup():
             return jsonify({'message': 'User already exists'}), 409
 
         token = generate_token(user_id)
+        session['user_id'] = user_id
         return jsonify({'message': 'User created successfully', 'token': token, 'user_id': user_id}), 201
     except Exception as e:
         return jsonify({'message': f"Server Error: {str(e)}"}), 500
+
+@auth_bp.route('/loading')
+def loading():
+    return render_template('auth/loading.html')
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -53,12 +89,14 @@ def login():
             return jsonify({'message': 'Invalid credentials'}), 401
 
         token = generate_token(str(user['_id']))
+        session['user_id'] = str(user['_id'])
         return jsonify({'token': token, 'user_name': user['name']}), 200
     except Exception as e:
         return jsonify({'message': f"Server Error: {str(e)}"}), 500
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
+    session.pop('user_id', None)
     return jsonify({'message': 'Successfully logged out'}), 200
 
 @auth_bp.route('/google')

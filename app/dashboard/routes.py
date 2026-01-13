@@ -1,4 +1,4 @@
-from flask import render_template, current_app, jsonify
+from flask import render_template, current_app, jsonify, session, redirect, url_for
 from app.dashboard import dashboard_bp
 from app.auth.utils import token_required
 import requests
@@ -6,6 +6,8 @@ import datetime
 
 @dashboard_bp.route('/')
 def index():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.loading'))
     return render_template('dashboard/index.html')
 
 @dashboard_bp.route('/calendar')

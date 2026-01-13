@@ -316,9 +316,10 @@
     const socket = io();
     const currentUser = JSON.parse(localStorage.getItem('auralis_user')) || { name: 'User' };
 
-    if (currentUser) {
-        document.getElementById('displayUserNameOverview').textContent = currentUser.name;
-        socket.emit('register_session', { user_id: currentUser.id || 'anonymous' });
+    if (currentUser && currentUser.id) {
+        if (document.getElementById('displayUserNameOverview'))
+            document.getElementById('displayUserNameOverview').textContent = currentUser.name;
+        socket.emit('register_session', { user_id: currentUser.id });
     }
 
     // --- TAB NAVIGATION ---
@@ -377,11 +378,12 @@
                 historyList.innerHTML = meetings.map(m => `
                     <div class="bg-white dark:bg-[#202124] rounded-xl p-6 border border-gray-100 dark:border-gray-800 hover:shadow-md transition-all cursor-pointer group" onclick="window.location.href='/meet/${m.meeting_id}'">
                         <div class="flex justify-between items-start mb-4">
-                            <span class="text-[10px] uppercase font-bold px-2 py-1 rounded bg-[#1a73e8]/10 text-[#1a73e8]">${m.status}</span>
+                            <span class="text-[10px] uppercase font-bold px-2 py-1 rounded ${m.status === 'past' ? 'bg-gray-100 text-gray-500' : 'bg-[#1a73e8]/10 text-[#1a73e8]'}">${m.status}</span>
                             <span class="text-[10px] text-gray-400 font-medium">${new Date(m.created_at).toLocaleDateString()}</span>
                         </div>
                         <h4 class="text-base font-semibold truncate">${m.title || 'Meeting'}</h4>
                         <p class="text-xs text-gray-400 mt-2">Code: ${m.meeting_id}</p>
+                        ${m.ended_at ? `<p class="text-[10px] text-gray-400 mt-2 italic">Ended: ${new Date(m.ended_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>` : ''}
                     </div>
                 `).join('');
             }
@@ -408,6 +410,7 @@
     });
 
     socket.on('call_declined', () => { alert('Call declined.'); document.getElementById('outgoingCallModal').classList.add('hidden'); });
+    socket.on('call_failed', (data) => { alert(data.message); document.getElementById('outgoingCallModal').classList.add('hidden'); });
 
     function acceptCall() {
         socket.emit('accept_call', { caller_id: activeCallData.caller_id, meeting_id: activeCallData.meeting_id });

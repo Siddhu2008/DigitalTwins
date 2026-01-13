@@ -64,7 +64,7 @@
         try {
             const result = await apiCall('/auth/login', 'POST', { email, password });
             localStorage.setItem('auralis_token', result.token);
-            localStorage.setItem('auralis_user', JSON.stringify({ name: result.user_name }));
+            localStorage.setItem('auralis_user', JSON.stringify({ name: result.user_name, id: result.user_id }));
             window.location.href = '/dashboard/';
         } catch (err) {
             errorDiv.textContent = err.message;

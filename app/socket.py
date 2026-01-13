@@ -56,17 +56,29 @@ def handle_decline(data):
 def handle_join(data):
     meeting_id = data.get('meetingId')
     name = data.get('name')
+    role = data.get('role', 'guest')
     if not meeting_id: return
+    
+    # Validate against DB
+    from app.db import mongo
+    if not mongo.db.active_meetings.find_one({"_id": meeting_id}):
+        emit('error', {'message': 'Invalid meeting ID'}, room=request.sid)
+        return
     
     join_room(meeting_id)
     if meeting_id not in rooms:
         rooms[meeting_id] = {}
     
     # Notify others and send room info to joiner
-    emit('room_info', {'users': [{'sid': sid, 'name': n} for sid, n in rooms[meeting_id].items()]}, room=request.sid)
-    rooms[meeting_id][request.sid] = name
+    participant_list = []
+    for sid, n in rooms[meeting_id].items():
+        p_name = n['name'] if isinstance(n, dict) else str(n)
+        participant_list.append({'sid': sid, 'name': p_name})
+        
+    emit('room_info', {'users': participant_list}, room=request.sid)
+    rooms[meeting_id][request.sid] = {'name': name, 'role': role}
     emit('user_joined', {'sid': request.sid, 'name': name}, room=meeting_id, include_self=False)
-    print(f"User {name} ({request.sid}) joined meeting {meeting_id}")
+    print(f"User {name} ({request.sid}) joined meeting {meeting_id} as {role}")
 
 @socketio.on('signal')
 def handle_signal(data):
@@ -92,13 +104,19 @@ def handle_disconnect():
             name = users.pop(request.sid)
             emit('user_left', {'sid': request.sid}, room=rid)
             print(f"User {name} left meeting {rid}")
+            
+            if not users:
+                # Last user left, update status to past
+                from app.meetings.services import update_meeting_end_status
+                update_meeting_end_status(rid)
+                del rooms[rid]
 
 @socketio.on('send_chat')
 def handle_chat(data):
     meeting_id = data.get('meetingId')
     emit('chat_message', {
         'sid': request.sid,
-        'from': rooms.get(meeting_id, {}).get(request.sid, 'Unknown'),
+        'from': rooms.get(meeting_id, {}).get(request.sid, {}).get('name', 'Unknown'),
         'message': data.get('message')
     }, room=meeting_id)
 
@@ -113,12 +131,12 @@ def handle_reaction(data):
 def handle_hand():
     for rid, users in rooms.items():
         if request.sid in users:
-            emit('hand_raised', {'name': users[request.sid], 'sid': request.sid}, room=rid)
+            emit('hand_raised', {'name': users[request.sid]['name'], 'sid': request.sid}, room=rid)
             break
 
 @socketio.on('caption_broadcast')
 def handle_caption(data):
     for rid, users in rooms.items():
         if request.sid in users:
-            emit('caption_broadcast', {'from': users[request.sid], 'text': data.get('text')}, room=rid, include_self=False)
+            emit('caption_broadcast', {'from': users[request.sid]['name'], 'text': data.get('text')}, room=rid, include_self=False)
             break

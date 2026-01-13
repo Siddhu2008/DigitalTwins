@@ -7,7 +7,7 @@ import datetime
 @dashboard_bp.route('/')
 def index():
     if 'user_id' not in session:
-        return redirect(url_for('auth.loading'))
+        return redirect(url_for('auth.login'))
     return render_template('dashboard/index.html')
 
 @dashboard_bp.route('/calendar')

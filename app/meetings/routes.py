@@ -47,6 +47,8 @@ def list_meetings(current_user):
     for m in meetings:
         m['_id'] = str(m['_id'])
         m['created_at'] = m['created_at'].isoformat()
+        if 'ended_at' in m and m['ended_at']:
+            m['ended_at'] = m['ended_at'].isoformat()
     return jsonify(meetings), 200
 
 @meetings_bp.route('/<meeting_id>/summary', methods=['GET'])

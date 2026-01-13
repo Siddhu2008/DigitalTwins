@@ -44,5 +44,19 @@ def mock_process_meeting(meeting_id):
     )
     return summary
 
+def update_meeting_end_status(meeting_id):
+    """Updates the meeting status to 'past' in both meetings and active_meetings collections."""
+    now = datetime.utcnow()
+    # Update the user's meeting record
+    mongo.db.meetings.update_one(
+        {'meeting_id': meeting_id},
+        {'$set': {
+            'status': 'past',
+            'ended_at': now
+        }}
+    )
+    # Remove from active meetings
+    mongo.db.active_meetings.delete_one({'_id': meeting_id})
+
 def get_summary_by_meeting_id(meeting_id):
     return mongo.db.summaries.find_one({'meeting_id': meeting_id})

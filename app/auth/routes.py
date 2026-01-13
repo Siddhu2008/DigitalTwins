@@ -90,7 +90,7 @@ def login():
 
         token = generate_token(str(user['_id']))
         session['user_id'] = str(user['_id'])
-        return jsonify({'token': token, 'user_name': user['name']}), 200
+        return jsonify({'token': token, 'user_name': user['name'], 'user_id': str(user['_id'])}), 200
     except Exception as e:
         return jsonify({'message': f"Server Error: {str(e)}"}), 500
 
@@ -99,21 +99,44 @@ def logout():
     session.pop('user_id', None)
     return jsonify({'message': 'Successfully logged out'}), 200
 
+@auth_bp.route('/session_sync', methods=['POST'])
+@token_required
+def session_sync(current_user):
+    try:
+        if not current_user:
+            return jsonify({'message': 'User not found'}), 401
+        session['user_id'] = str(current_user['_id'])
+        return jsonify({'message': 'Session synced', 'user_name': current_user['name']}), 200
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
 @auth_bp.route('/google')
 def google_login():
     from app.oauth import oauth
     redirect_uri = url_for('auth.google_callback', _external=True)
+    # Clear session to avoid state conflicts
+    session.pop('user_id', None)
     return oauth.google.authorize_redirect(redirect_uri)
 
 @auth_bp.route('/google/callback')
 def google_callback():
     from app.oauth import oauth
-    token = oauth.google.authorize_access_token()
-    user_info = oauth.google.parse_id_token(token, None)
-    
-    user_id = create_or_update_google_user(user_info, token)
-    app_token = generate_token(user_id)
-    
-    # Render a temporary page to save token and redirect
-    return render_template('auth/google_callback.html', token=app_token, user_name=user_info.get('name', 'User'))
+    try:
+        token = oauth.google.authorize_access_token()
+        if not token:
+            return redirect(url_for('auth.login'))
+            
+        user_info = oauth.google.parse_id_token(token, None)
+        if not user_info:
+            return redirect(url_for('auth.login'))
+            
+        user_id = create_or_update_google_user(user_info, token)
+        app_token = generate_token(user_id)
+        session['user_id'] = str(user_id)
+        
+        # Render a temporary page to save token and redirect
+        return render_template('auth/google_callback.html', token=app_token, user_name=user_info.get('name', 'User'), user_id=user_id)
+    except Exception as e:
+        print(f"Google Auth Error: {e}")
+        return redirect(url_for('auth.login'))
 

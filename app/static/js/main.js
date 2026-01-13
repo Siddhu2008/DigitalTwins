@@ -33,18 +33,39 @@ async function apiCall(endpoint, method = 'GET', data = null) {
     }
 }
 
-function handleLogout() {
+async function handleLogout() {
+    try {
+        await fetch('/auth/logout', { method: 'POST' });
+    } catch (e) { }
     localStorage.removeItem('auralis_token');
     localStorage.removeItem('auralis_user');
     window.location.href = '/auth/login';
 }
 
-function checkAuth() {
+async function checkAuth() {
     const token = localStorage.getItem('auralis_token');
     const path = window.location.pathname;
-    if (!token && !path.startsWith('/auth')) {
-        window.location.href = '/auth/loading';
-    } else if (token && (path === '/auth/login' || path === '/auth/signup' || path === '/auth/loading')) {
-        window.location.href = '/dashboard/';
+
+    // Auth routes that should redirect to dashboard if token exists
+    const authPaths = ['/auth/login', '/auth/signup', '/auth/loading', '/auth/'];
+
+    if (!token) {
+        // If no token and not on an auth page, go to loading (which leads to login)
+        if (!path.startsWith('/auth')) {
+            window.location.href = '/auth/loading';
+        }
+    } else {
+        // If token exists and on an auth page, try to restore session and go to dashboard
+        if (authPaths.some(p => path === p || path === p + '/')) {
+            try {
+                await apiCall('/auth/session_sync', 'POST');
+                window.location.href = '/dashboard/';
+            } catch (err) {
+                // If token is invalid/expired, clear it
+                localStorage.removeItem('auralis_token');
+                localStorage.removeItem('auralis_user');
+                if (path !== '/auth/login') window.location.href = '/auth/login';
+            }
+        }
     }
 }

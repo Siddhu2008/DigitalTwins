@@ -62,9 +62,13 @@
     </div>
 
     <script>
-        // Redirect to login after the animation finishes
+        // Redirect to dashboard if already logged in, otherwise to login after animation
         setTimeout(() => {
-            window.location.href = '/auth/login';
+            if (localStorage.getItem('auralis_token')) {
+                window.location.href = '/dashboard/';
+            } else {
+                window.location.href = '/auth/login';
+            }
         }, 2200);
     </script>
 </body>

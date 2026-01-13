@@ -10,7 +10,7 @@
     <p>Authenticating...</p>
     <script>
         localStorage.setItem('auralis_token', '{{ token }}');
-        localStorage.setItem('auralis_user', JSON.stringify({ name: '{{ user_name }}' }));
+        localStorage.setItem('auralis_user', JSON.stringify({ name: '{{ user_name }}', id: '{{ user_id }}' }));
         window.location.href = '/dashboard/';
     </script>
 </body>

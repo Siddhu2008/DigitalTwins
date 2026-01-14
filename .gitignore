@@ -79,3 +79,4 @@ htmlcov/
 .vscode-server/
 *.bak
 dist/
+.env.example

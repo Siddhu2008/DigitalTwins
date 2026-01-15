@@ -22,6 +22,22 @@ async function apiCall(endpoint, method = 'GET', data = null) {
 
     try {
         const response = await fetch(endpoint, config);
+
+
+        // Handle 401 Unauthorized - redirect to login (but not if already on login/signup)
+        if (response.status === 401) {
+            const authEndpoints = ['/auth/login', '/auth/signup'];
+            const isAuthEndpoint = authEndpoints.some(ep => endpoint.includes(ep));
+
+            if (!isAuthEndpoint) {
+                console.warn('Unauthorized access - redirecting to login');
+                localStorage.removeItem('auralis_token');
+                localStorage.removeItem('auralis_user');
+                window.location.href = '/auth/login';
+                throw new Error('Unauthorized - redirecting to login');
+            }
+        }
+
         const result = await response.json();
         if (!response.ok) {
             throw new Error(result.message || 'API Error');
@@ -48,24 +64,30 @@ async function checkAuth() {
 
     // Auth routes that should redirect to dashboard if token exists
     const authPaths = ['/auth/login', '/auth/signup', '/auth/loading', '/auth/'];
+    const isAuthPage = authPaths.some(p => path === p || path === p + '/');
 
     if (!token) {
-        // If no token and not on an auth page, go to loading (which leads to login)
-        if (!path.startsWith('/auth')) {
-            window.location.href = '/auth/loading';
+        // If no token and not on an auth page, go to login
+        if (!isAuthPage) {
+            console.log('No token found - redirecting to login');
+            window.location.href = '/auth/login';
         }
+        // If on auth page with no token, stay on auth page (don't redirect)
     } else {
-        // If token exists and on an auth page, try to restore session and go to dashboard
-        if (authPaths.some(p => path === p || path === p + '/')) {
+        // If token exists and on an auth page, try to validate and redirect to dashboard
+        if (isAuthPage) {
             try {
                 await apiCall('/auth/session_sync', 'POST');
+                // Only redirect if token is valid
                 window.location.href = '/dashboard/';
             } catch (err) {
-                // If token is invalid/expired, clear it
+                // If token is invalid/expired, clear it and stay on login
+                console.log('Token invalid - clearing and staying on login');
                 localStorage.removeItem('auralis_token');
                 localStorage.removeItem('auralis_user');
-                if (path !== '/auth/login') window.location.href = '/auth/login';
+                // Don't redirect - stay on current auth page
             }
         }
+        // If token exists and NOT on auth page, allow access (protected pages will handle auth)
     }
 }

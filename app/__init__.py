@@ -34,14 +34,13 @@ def create_app(config_class=Config):
     from app.meetings import meetings_bp
     app.register_blueprint(meetings_bp, url_prefix='/meetings')
 
-    from app.tone import tone_bp
-    app.register_blueprint(tone_bp, url_prefix='/tone')
 
     from app.settings import settings_bp
     app.register_blueprint(settings_bp, url_prefix='/settings')
 
     from app.meet import meet_bp
     app.register_blueprint(meet_bp, url_prefix='/meet')
+
 
     @app.route('/')
     def index():

@@ -5,26 +5,53 @@
 <link rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-<div class="h-screen bg-[#202124] text-white flex flex-col overflow-hidden font-sans">
+<div class="h-screen bg-[#1a1c1e] text-[#e8eaed] flex flex-col overflow-hidden font-sans">
+
+    <!-- MEETING INFO BAR -->
+    <div class="bg-[#202124] border-b border-gray-700 px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div>
+                <p class="text-xs text-gray-500 uppercase tracking-wider">Meeting code</p>
+                <p id="meetingCode" class="text-lg font-bold text-white font-mono">{{ meeting_id }}</p>
+            </div>
+            <button onclick="copyMeetingCode()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors">
+                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">content_copy</span>Copy Link
+            </button>
+        </div>
+        <div class="flex items-center gap-8">
+            <div class="text-center">
+                <p class="text-xs text-gray-500 uppercase tracking-wider">Duration</p>
+                <p id="meetingDuration" class="text-lg font-bold text-white">00:00</p>
+            </div>
+            <div class="text-center">
+                <p class="text-xs text-gray-500 uppercase tracking-wider">Participants</p>
+                <p id="totalParticipants" class="text-lg font-bold text-blue-400">1</p>
+            </div>
+        </div>
+    </div>
 
     <!-- MAIN AREA -->
     <div class="flex-1 flex overflow-hidden relative">
 
         <!-- LEFT: VIDEO GRID -->
         <div class="flex-1 flex flex-col relative p-4 transition-all duration-300" id="mainStage">
-            <div id="videoGrid" class="h-full w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+            <div id="videoGrid" class="h-full w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
                 <!-- Local Video -->
                 <div
-                    class="relative bg-[#3c4043] rounded-xl overflow-hidden flex items-center justify-center border border-gray-700 group">
+                    class="relative bg-gradient-to-br from-[#3c4043] to-[#2d2f32] rounded-3xl overflow-hidden flex flex-col items-center justify-center border-2 border-white/5 shadow-2xl group transition-all duration-500 hover:border-brand-500/50">
                     <video id="localVideo" autoplay muted playsinline
                         class="w-full h-full object-cover transform scale-x-[-1]"></video>
+                    <div id="videoPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#3c4043] to-[#2d2f32] hidden">
+                        <span class="material-symbols-outlined text-5xl text-gray-500 mb-4">videocam_off</span>
+                        <p class="text-gray-400 text-sm">Camera is off</p>
+                    </div>
                     <div
-                        class="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2">
-                        <span id="localNameDisplay">You</span>
-                        <span id="localStatusIcons" class="flex gap-1">
+                        class="absolute bottom-6 left-6 glass px-4 py-2 rounded-2xl text-sm font-bold flex items-center gap-2 shadow-lg">
+                        <span id="localNameDisplay" class="font-outfit">You</span>
+                        <div id="localStatusIcons" class="flex gap-1">
                             <span class="material-symbols-outlined text-red-500 text-sm hidden"
                                 id="localMicOff">mic_off</span>
-                        </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -43,7 +70,7 @@
 
         <!-- RIGHT SIDEBARS -->
         <aside id="rightSidebar"
-            class="hidden w-[360px] bg-white dark:bg-[#202124] border-l border-gray-700 flex flex-col m-4 rounded-xl overflow-hidden shadow-2xl">
+            class="fixed md:relative top-4 right-4 bottom-4 md:top-0 md:right-0 md:bottom-0 z-50 w-[380px] hidden glass border-white/10 flex flex-col rounded-3xl overflow-hidden shadow-2xl transition-all duration-300">
             <!-- Sidebar Header -->
             <div class="p-5 border-b border-gray-700 flex justify-between items-center bg-[#202124]">
                 <h3 id="sidebarTitle" class="text-xl font-medium">Messages</h3>
@@ -53,17 +80,17 @@
             </div>
 
             <!-- CHAT CONTENT -->
-            <div id="chatView" class="hidden flex-1 flex flex-col overflow-hidden">
-                <div id="chatMessages" class="flex-1 overflow-y-auto p-5 space-y-4">
-                    <div class="bg-[#f1f3f4] dark:bg-[#3c4043] p-4 rounded-lg text-sm text-center">
+            <div id="chatView" class="hidden flex-1 flex flex-col overflow-hidden bg-[#1a1c1e]">
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-5 space-y-4 bg-[#262829]">
+                    <div class="bg-[#3c4043] p-4 rounded-lg text-sm text-center text-gray-300">
                         Messages can only be seen by people in the call and are deleted when the call ends.
                     </div>
                 </div>
-                <form id="chatForm" class="p-4 bg-[#202124]">
+                <form id="chatForm" class="p-4 bg-[#202124] border-t border-gray-700">
                     <div class="relative flex items-center gap-2 bg-[#3c4043] rounded-full px-4 py-1">
                         <input type="text" id="chatInput" placeholder="Send a message"
-                            class="flex-1 bg-transparent text-white py-3 outline-none text-sm">
-                        <button type="submit" class="text-blue-400 hover:text-blue-300 disabled:opacity-50">
+                            class="flex-1 bg-transparent text-white placeholder-gray-400 py-3 outline-none text-sm">
+                        <button type="submit" class="text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors">
                             <span class="material-symbols-outlined">send</span>
                         </button>
                     </div>
@@ -84,67 +111,48 @@
     </div>
 
     <!-- BOTTOM CONTROL BAR -->
-    <footer class="h-20 bg-[#202124] flex items-center justify-between px-6 z-30">
-        <!-- Left: Meeting Info -->
-        <div class="flex items-center gap-4 w-1/4">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="w-8 h-8 object-contain">
-            <div class="hidden md:block">
-                <p id="footerTime" class="text-sm font-medium">12:00 PM</p>
-                <div class="flex items-center gap-2 text-gray-400">
-                    <span class="text-sm font-medium tracking-tight">{{ meeting_id }}</span>
-                    <button onclick="copyMeetingLink()" class="hover:text-white transition-colors">
-                        <span class="material-symbols-outlined text-[18px]">content_copy</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
+    <footer
+        class="fixed bottom-8 left-1/2 -translate-x-1/2 glass px-8 h-20 rounded-[2.5rem] flex items-center gap-12 shadow-2xl z-50 border-white/20">
         <!-- Center: Main Controls -->
-        <div class="flex items-center gap-3">
-            <button onclick="toggleAudio()" id="btnAudio" class="ctrl-btn bg-[#3c4043] hover:bg-[#4d5155]">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleAudio()" id="btnAudio"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
                 <span id="iconAudio" class="material-symbols-outlined">mic</span>
             </button>
-            <button onclick="toggleVideo()" id="btnVideo" class="ctrl-btn bg-[#3c4043] hover:bg-[#4d5155]">
+            <button onclick="toggleVideo()" id="btnVideo"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
                 <span id="iconVideo" class="material-symbols-outlined">videocam</span>
             </button>
-            <button onclick="toggleCaptions()" id="btnCaptions" class="ctrl-btn bg-[#3c4043] hover:bg-[#4d5155]">
+            <button onclick="toggleCaptions()" id="btnCaptions"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
                 <span class="material-symbols-outlined">closed_caption</span>
             </button>
-            <button onclick="sendReaction('💖')" class="ctrl-btn bg-[#3c4043] hover:bg-[#4d5155] hidden sm:flex">
-                <span class="material-symbols-outlined">add_reaction</span>
-            </button>
-            <button onclick="shareScreen()" id="btnShare" class="ctrl-btn bg-[#3c4043] hover:bg-[#4d5155]">
-                <span class="material-symbols-outlined">present_to_all</span>
-            </button>
-            <button onclick="raiseHand()" id="btnHand" class="ctrl-btn bg-[#3c4043] hover:bg-[#4d5155]">
-                <span class="material-symbols-outlined">front_hand</span>
-            </button>
-            <button onclick="showMoreMenu()" class="ctrl-btn bg-[#3c4043] hover:bg-[#4d5155]">
-                <span class="material-symbols-outlined">more_vert</span>
-            </button>
+
             <button onclick="leaveCall()"
-                class="w-16 h-10 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all ml-4">
+                class="w-20 h-10 rounded-3xl bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all shadow-lg shadow-red-500/30">
                 <span class="material-symbols-outlined text-white">call_end</span>
             </button>
-        </div>
 
-        <!-- Right: Tool Buttons -->
-        <div class="flex items-center justify-end gap-2 w-1/4">
-            <button onclick="openTab('info')" id="btnInfo" class="tool-btn">
-                <span class="material-symbols-outlined">info</span>
+            <div class="h-8 w-px bg-white/10 mx-2"></div>
+
+            <button onclick="shareScreen()" id="btnShare"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
+                <span class="material-symbols-outlined">present_to_all</span>
             </button>
-            <button onclick="openTab('participants')" id="btnParticipants" class="tool-btn relative">
-                <span class="material-symbols-outlined">group</span>
-                <div id="participantDot" class="hidden absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full"></div>
+            <button onclick="raiseHand()" id="btnHand"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
+                <span class="material-symbols-outlined">front_hand</span>
             </button>
-            <button onclick="openTab('chat')" id="btnChat" class="tool-btn relative">
+            <button onclick="openTab('chat')" id="btnChat"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10 relative">
                 <span class="material-symbols-outlined">chat</span>
                 <div id="chatBadge"
-                    class="hidden absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full border-2 border-[#202124]">
+                    class="hidden absolute top-0 right-0 w-3 h-3 bg-brand-500 rounded-full border-2 border-white/20">
                 </div>
             </button>
-            <button class="tool-btn">
-                <span class="material-symbols-outlined">category</span>
+            <button onclick="openTab('participants')" id="btnParticipants"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
+                <span class="material-symbols-outlined">group</span>
             </button>
         </div>
     </footer>
@@ -152,16 +160,11 @@
 
 <style>
     .ctrl-btn {
-        @apply w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200;
-        background-color: #3c4043;
-    }
-
-    .ctrl-btn:hover {
-        background-color: #4d5155;
+        @apply w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90 text-white shadow-lg;
     }
 
     .tool-btn {
-        @apply w-12 h-12 rounded-full flex items-center justify-center hover:bg-[#3c4043] text-gray-300 transition-colors;
+        @apply w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-white/10 text-gray-300 transition-colors;
     }
 
     .active-tool {
@@ -201,6 +204,101 @@
 
     #videoGrid>div {
         transition: all 0.3s ease-in-out;
+        border: 2px solid #404043;
+    }
+
+    #videoGrid>div:hover {
+        border-color: #4a7fd7;
+        box-shadow: 0 0 20px rgba(74, 127, 215, 0.3);
+    }
+
+    /* Video name badge improvement */
+    #videoGrid .glass {
+        background: rgba(20, 20, 22, 0.85);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Chat improvements */
+    #chatMessages {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    #chatMessages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #chatMessages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #chatMessages::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+
+    #chatMessages::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Participants list improvements */
+    #participantsList {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
+
+    #participantsList::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #participantsList::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #participantsList::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+
+    #participantsList::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Info bar improvements */
+    #meetingCode {
+        font-family: 'Courier New', monospace;
+        letter-spacing: 0.1em;
+        color: #e8eaed;
+    }
+
+    /* Toast notification animations */
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in {
+        animation: slideIn 0.3s ease-out;
+    }
+
+    /* Video grid responsive improvements */
+    @media (max-width: 1024px) {
+        #videoGrid {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+    }
+
+    @media (max-width: 640px) {
+        #videoGrid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -215,6 +313,7 @@
     let myName = "User";
     let isVideo = true, isAudio = true, isCaptions = false, isHandRaised = false;
     let activeTab = null;
+    let meetingStartTime = null;
 
     // --- RECOGNITION (Captions) ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -236,9 +335,13 @@
 
     // --- INITIALIZATION ---
     async function init() {
-        // Clock
-        updateTime();
-        setInterval(updateTime, 10000);
+        // Set meeting start time
+        meetingStartTime = new Date();
+        updateMeetingDuration();
+        setInterval(updateMeetingDuration, 1000);
+
+        // Display meeting code
+        document.getElementById('meetingCode').textContent = meetingId;
 
         // Name from cache or prompt
         const userCache = JSON.parse(localStorage.getItem('auralis_user') || '{}');
@@ -252,19 +355,35 @@
             socket.emit('join_meeting', { meetingId, name: myName });
             renderParticipants();
         } catch (e) {
-            console.error(e);
-            showToast("Camera/Mic access denied.");
+            console.error('Media access error:', e.name, e.message);
+            let errorMsg = "Camera/Mic access denied.";
+            
+            if (e.name === 'NotReadableError' || e.message.includes('Device in use')) {
+                errorMsg = "Camera is already in use by another application. Please close other apps using your camera and try again.";
+            } else if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                errorMsg = "Please allow camera and microphone access.";
+            } else if (e.name === 'NotFoundError') {
+                errorMsg = "Camera or microphone not found on this device.";
+            }
+            
+            showToast(errorMsg, 'error');
+            console.error('Camera error:', errorMsg, e);
         }
     }
 
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('footerTime').textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    function updateMeetingDuration() {
+        if (!meetingStartTime) return;
+        const elapsed = Math.floor((new Date() - meetingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        document.getElementById('meetingDuration').textContent = 
+            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 
     // --- SOCKET LOGIC ---
 
     socket.on('room_info', (data) => {
+        console.log('Room info received:', data);
         data.users.forEach(user => {
             initConnection(user.sid, user.name, true);
         });
@@ -272,6 +391,7 @@
     });
 
     socket.on('user_joined', (data) => {
+        console.log('User joined:', data);
         showToast(`${data.name} joined`);
         initConnection(data.sid, data.name, false);
         updateParticipantCount();
@@ -290,25 +410,8 @@
         }
     });
 
-    socket.on('signal', async (data) => {
-        const peer = peers[data.from];
-        if (!peer) return;
-        const pc = peer.connection;
-        try {
-            if (data.type === 'offer') {
-                await pc.setRemoteDescription(data.data);
-                const answer = await pc.createAnswer();
-                await pc.setLocalDescription(answer);
-                socket.emit('signal', { type: 'answer', data: answer, to: data.from });
-            } else if (data.type === 'answer') {
-                await pc.setRemoteDescription(data.data);
-            } else if (data.type === 'candidate') {
-                if (data.data) await pc.addIceCandidate(data.data);
-            }
-        } catch (e) { console.error(e); }
-    });
-
     socket.on('chat_message', (data) => {
+        console.log('Message received:', data);
         appendMessage(data);
         if (activeTab !== 'chat') {
             document.getElementById('chatBadge').classList.remove('hidden');
@@ -325,33 +428,166 @@
         if (isCaptions) showCaptions(`${data.from}: ${data.text}`);
     });
 
+    // --- SIGNALING HANDLER ---
+    socket.on('signal', async (data) => {
+        const from = data.from;
+        const type = data.type;
+        const signalData = data.data;
+        
+        console.log(`Signal received from ${from}:`, type, signalData);
+
+        if (!peers[from]) {
+            console.log(`Creating peer connection for ${from} (answerer)`);
+            // If we don't have this peer yet, they must be the initiator
+            // We'll create a connection without onnegotiationneeded
+            const pc = new RTCPeerConnection(rtcConfig);
+            if (localStream) {
+                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+            }
+            peers[from] = { connection: pc, name: from, stream: null };
+            
+            pc.ontrack = (event) => {
+                console.log(`Track received from ${from}:`, event.track.kind);
+                if (!peers[from]) peers[from] = { connection: pc, name: from, stream: null };
+                peers[from].stream = event.streams[0];
+                createRemoteVideoElement(from, peers[from].name || from, event.streams[0]);
+                renderParticipants();
+            };
+
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    console.log(`Sending ICE candidate to ${from}`);
+                    socket.emit('signal', { type: 'candidate', data: event.candidate, to: from });
+                }
+            };
+        }
+
+        try {
+            const pc = peers[from].connection;
+            
+            if (type === 'offer') {
+                console.log(`Processing offer from ${from}`, signalData);
+                await pc.setRemoteDescription(signalData);
+                const answer = await pc.createAnswer();
+                console.log(`Sending answer to ${from}`, answer);
+                await pc.setLocalDescription(answer);
+                socket.emit('signal', { type: 'answer', data: answer, to: from });
+            } else if (type === 'answer') {
+                console.log(`Processing answer from ${from}`, signalData);
+                await pc.setRemoteDescription(signalData);
+            } else if (type === 'candidate') {
+                console.log(`Processing ICE candidate from ${from}`, signalData);
+                try {
+                    if (signalData) {
+                        await pc.addIceCandidate(signalData);
+                    }
+                } catch (e) {
+                    console.warn(`Error adding ICE candidate from ${from}:`, e);
+                }
+            }
+        } catch (e) {
+            console.error(`Error processing signal from ${from}:`, e);
+        }
+    });
+
     // --- WebRTC HANDSHAKE ---
 
     function initConnection(sid, name, isInitiator) {
-        const pc = new RTCPeerConnection(rtcConfig);
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        console.log(`initConnection called for ${sid} (${name}), isInitiator=${isInitiator}`);
+        
+        if (peers[sid]) {
+            console.log(`Connection for ${sid} already exists`);
+            return;
+        }
 
+        const pc = new RTCPeerConnection(rtcConfig);
+        console.log(`RTCPeerConnection created for ${sid}`);
+        
+        // Initialize peer object FIRST
+        peers[sid] = { connection: pc, name: name, stream: null };
+        
+        // Add local tracks
+        if (localStream) {
+            const tracks = localStream.getTracks();
+            console.log(`Adding ${tracks.length} local tracks to ${sid}`);
+            tracks.forEach(track => {
+                console.log(`Adding track: ${track.kind}`);
+                pc.addTrack(track, localStream);
+            });
+        } else {
+            console.warn(`No localStream available for ${sid}`);
+        }
+
+        // Handle remote tracks
         pc.ontrack = (event) => {
-            if (peers[sid] && peers[sid].stream) return;
+            console.log(`ontrack event for ${sid}:`, event.track.kind, event.streams.length);
+            if (!peers[sid]) peers[sid] = { connection: pc, name: name, stream: null };
             peers[sid].stream = event.streams[0];
+            console.log(`Stream assigned for ${sid}, creating video element`);
             createRemoteVideoElement(sid, name, event.streams[0]);
             renderParticipants();
         };
 
+        // Handle ICE candidates
         pc.onicecandidate = (event) => {
             if (event.candidate) {
+                console.log(`ICE candidate from ${sid}:`, event.candidate.candidate);
                 socket.emit('signal', { type: 'candidate', data: event.candidate, to: sid });
+            } else {
+                console.log(`ICE gathering complete for ${sid}`);
             }
         };
 
-        peers[sid] = { connection: pc, name: name, stream: null };
+        // Handle connection state changes
+        pc.onconnectionstatechange = () => {
+            console.log(`Connection state with ${sid}: ${pc.connectionState}`);
+            if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+                console.warn(`Connection lost with ${sid}, removing peer`);
+                if (peers[sid]) {
+                    peers[sid].connection.close();
+                    delete peers[sid];
+                    const el = document.getElementById('video-' + sid);
+                    if (el) el.remove();
+                    renderParticipants();
+                }
+            }
+        };
 
+        pc.oniceconnectionstatechange = () => {
+            console.log(`ICE connection state with ${sid}: ${pc.iceConnectionState}`);
+        };
+
+        // Initiator creates offer
         if (isInitiator) {
+            console.log(`Setting up as initiator for ${sid}`);
             pc.onnegotiationneeded = async () => {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                socket.emit('signal', { type: 'offer', data: offer, to: sid });
+                try {
+                    console.log(`onnegotiationneeded fired for ${sid}`);
+                    const offer = await pc.createOffer();
+                    console.log(`Setting local description (offer) for ${sid}`);
+                    await pc.setLocalDescription(offer);
+                    console.log(`Sending offer to ${sid}`, offer);
+                    socket.emit('signal', { type: 'offer', data: offer, to: sid });
+                } catch (e) {
+                    console.error(`Error in onnegotiationneeded for ${sid}:`, e);
+                }
             };
+            
+            // For some browsers, onnegotiationneeded may not fire automatically
+            // So we manually create an offer after a short delay
+            setTimeout(async () => {
+                if (peers[sid] && pc.signalingState === 'stable' && !peers[sid].offerSent) {
+                    try {
+                        console.log(`Manually creating offer for ${sid}`);
+                        const offer = await pc.createOffer();
+                        await pc.setLocalDescription(offer);
+                        peers[sid].offerSent = true;
+                        socket.emit('signal', { type: 'offer', data: offer, to: sid });
+                    } catch (e) {
+                        console.error(`Error manually creating offer for ${sid}:`, e);
+                    }
+                }
+            }, 500);
         }
     }
 
@@ -363,10 +599,10 @@
 
         el = document.createElement('div');
         el.id = 'video-' + sid;
-        el.className = "relative bg-[#3c4043] rounded-xl overflow-hidden flex items-center justify-center border border-gray-700 group";
+        el.className = "relative bg-[#3c4043] rounded-3xl overflow-hidden flex items-center justify-center border-2 border-white/5 shadow-2xl group transition-all duration-500 hover:border-brand-500/50";
         el.innerHTML = `
             <video autoplay playsinline class="w-full h-full object-cover"></video>
-            <div class="absolute bottom-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg text-sm font-medium">
+            <div class="absolute bottom-6 left-6 glass px-4 py-2 rounded-2xl text-sm font-bold shadow-lg font-outfit">
                 ${name}
             </div>
         `;
@@ -454,9 +690,16 @@
     function updateParticipantCount(count) {
         const c = count || (Object.keys(peers).length + 1);
         document.getElementById('participantCount').textContent = c;
+        document.getElementById('totalParticipants').textContent = c;
     }
 
     // --- ACTIONS ---
+
+    function copyMeetingCode() {
+        const url = `${window.location.origin}/meet/${meetingId}`;
+        navigator.clipboard.writeText(url);
+        showToast("Meeting link copied! Share it with others.");
+    }
 
     function toggleAudio() {
         isAudio = !isAudio;
@@ -480,13 +723,16 @@
         localStream.getVideoTracks().forEach(t => t.enabled = isVideo);
         const btn = document.getElementById('btnVideo');
         const icon = document.getElementById('iconVideo');
+        const placeholder = document.getElementById('videoPlaceholder');
 
         if (isVideo) {
             btn.classList.remove('btn-red');
             icon.textContent = "videocam";
+            placeholder.classList.add('hidden');
         } else {
             btn.classList.add('btn-red');
             icon.textContent = "videocam_off";
+            placeholder.classList.remove('hidden');
         }
     }
 
@@ -562,26 +808,48 @@
 
     function showToast(msg, type = 'success') {
         const toast = document.createElement('div');
-        toast.className = `p-4 rounded-lg shadow-lg text-sm font-medium animate-fade-in ${type === 'success' ? 'bg-blue-600' : 'bg-[#3c4043]'} text-white border border-gray-600`;
+        let bgColor = 'bg-[#3c4043]';
+        if (type === 'success') bgColor = 'bg-green-600';
+        else if (type === 'error') bgColor = 'bg-red-600';
+        else if (type === 'info') bgColor = 'bg-blue-600';
+        
+        toast.className = `p-4 rounded-lg shadow-lg text-sm font-medium animate-fade-in ${bgColor} text-white border border-gray-600 max-w-sm`;
         toast.textContent = msg;
         document.getElementById('toastContainer').appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        setTimeout(() => toast.remove(), 5000);
     }
 
     function appendMessage(data) {
         const isMe = data.sid === socket.id;
         const div = document.createElement('div');
-        div.className = "flex flex-col";
+        div.className = `flex flex-col p-3 rounded-lg ${isMe ? 'bg-blue-600/20 border border-blue-500/30 ml-4' : 'bg-[#3c4043] border border-gray-600/30 mr-4'}`;
         div.innerHTML = `
             <div class="flex items-baseline gap-2 mb-1">
-                <span class="text-sm font-medium ${isMe ? 'text-blue-400' : 'text-gray-300'}">${data.from}</span>
-                <span class="text-[10px] text-gray-500">${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                <span class="text-sm font-semibold ${isMe ? 'text-blue-300' : 'text-white'}">${data.from}</span>
+                <span class="text-[10px] text-gray-400">${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
             </div>
-            <p class="text-sm text-gray-200 leading-relaxed">${data.message}</p>
+            <p class="text-sm text-gray-100 leading-relaxed break-words">${escapeHtml(data.message)}</p>
         `;
         const container = document.getElementById('chatMessages');
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
+        
+        // Auto-open chat if not already open
+        if (activeTab !== 'chat') {
+            console.log('Opening chat automatically for new message');
+            openTab('chat');
+        }
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
     }
 
     function leaveCall() {

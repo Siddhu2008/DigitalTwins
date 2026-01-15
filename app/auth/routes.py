@@ -4,7 +4,6 @@ from app.auth.services import create_user, get_user_by_email, verify_password, c
 
 from app.auth.utils import generate_token, token_required
 from app.db import mongo
-import bson
 
 @auth_bp.route('/search_users', methods=['GET'])
 @token_required

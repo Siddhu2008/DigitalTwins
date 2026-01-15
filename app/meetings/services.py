@@ -45,13 +45,13 @@ def mock_process_meeting(meeting_id):
     return summary
 
 def update_meeting_end_status(meeting_id):
-    """Updates the meeting status to 'past' in both meetings and active_meetings collections."""
+    """Updates the meeting status to 'ended' in both meetings and active_meetings collections."""
     now = datetime.utcnow()
     # Update the user's meeting record
     mongo.db.meetings.update_one(
         {'meeting_id': meeting_id},
         {'$set': {
-            'status': 'past',
+            'status': 'ended',
             'ended_at': now
         }}
     )

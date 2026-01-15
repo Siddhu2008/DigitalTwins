@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <!-- Mobile Header -->
+    <div
+        class="fixed top-0 left-0 right-0 z-40 md:hidden bg-white dark:bg-[#1a1c1e] border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        <h1 class="text-lg font-bold">Auralis</h1>
+        <div class="w-10"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+    <!-- Sidebar -->
+    {% set active_page = 'avatar' %}
+    {% include 'components/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col pt-16 md:pt-0 overflow-hidden relative bg-[#f8f9fa] dark:bg-[#1a1c1e]">
+        <div class="flex-1 flex flex-col overflow-hidden p-4 md:p-8">
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-outfit font-bold relative inline-block">
+                        AI Avatar
+                        <span class="absolute -top-1 -right-4 flex h-3 w-3">
+                            <span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">Chat with your intelligent assistant.</p>
+                </div>
+            </header>
+
+            <!-- Chat Interface -->
+            <div
+                class="flex-1 flex flex-col glass rounded-3xl border border-white/20 shadow-sm overflow-hidden relative">
+
+                <!-- Chat History -->
+                <div id="chatHistory" class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                    <!-- Welcome Message -->
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-brand-500">smart_toy</span>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="font-bold text-sm text-[#1a1c1e] dark:text-white">Auralis Avatar</div>
+                            <div
+                                class="p-4 rounded-2xl rounded-tl-none bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-800 text-sm leading-relaxed shadow-sm max-w-2xl">
+                                Hello! I'm your personal AI assistant. I can help you draft emails, summarize meetings,
+                                answer questions, or just chat. How can I help you today?
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div
+                    class="p-4 bg-white/50 dark:bg-black/20 backdrop-blur-sm border-t border-gray-100 dark:border-gray-800">
+                    <form onsubmit="handleChatSubmit(event)" class="relative max-w-4xl mx-auto">
+                        <input id="chatInput" type="text"
+                            class="w-full pl-6 pr-14 py-4 rounded-2xl bg-white dark:bg-[#1a1c1e] border-0 ring-1 ring-gray-200 dark:ring-gray-800 focus:ring-2 focus:ring-brand-500 shadow-sm transition-all text-sm placeholder:text-gray-400"
+                            placeholder="Ask me anything..." autocomplete="off">
+                        <button type="submit"
+                            class="absolute right-2 top-2 bottom-2 aspect-square rounded-xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center transition-all shadow-lg shadow-brand-500/20 active:scale-95">
+                            <span class="material-symbols-outlined text-[20px]">send</span>
+                        </button>
+                    </form>
+                    <div class="text-center mt-2">
+                        <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">AI can make mistakes.
+                            Verify important info.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    checkAuth();
+
+    async function handleChatSubmit(e) {
+        e.preventDefault();
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        if (!message) return;
+
+        // Add User Message
+        addMessage(message, 'user');
+        input.value = '';
+
+        // Simulate AI Response (Loading)
+        const loadingId = addLoadingIndicator();
+
+        // TODO: Integrate actual Backend API here
+        // For now, simulate delay and response
+        setTimeout(() => {
+            removeMessage(loadingId);
+            addMessage("I'm currently in demo mode. My backend is being connected, but I can tell you that your dashboard looks great!", 'ai');
+        }, 1500);
+    }
+
+    function addMessage(text, sender) {
+        const history = document.getElementById('chatHistory');
+        const isUser = sender === 'user';
+
+        const html = `
+            <div class="flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-slide-in">
+                <div class="w-10 h-10 rounded-full ${isUser ? 'bg-gray-200 dark:bg-gray-700' : 'bg-brand-500/10'} flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined ${isUser ? 'text-gray-500' : 'text-brand-500'}">
+                        ${isUser ? 'person' : 'smart_toy'}
+                    </span>
+                </div>
+                <div class="space-y-1 ${isUser ? 'flex flex-col items-end' : ''}">
+                    <div class="font-bold text-sm text-[#1a1c1e] dark:text-white">${isUser ? 'You' : 'Auralis Avatar'}</div>
+                    <div class="p-4 rounded-2xl ${isUser ? 'rounded-tr-none bg-brand-500 text-white shadow-brand-500/20' : 'rounded-tl-none bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-800'} text-sm leading-relaxed shadow-sm max-w-2xl">
+                        ${text}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        history.insertAdjacentHTML('beforeend', html);
+        history.scrollTo(0, history.scrollHeight);
+        return html;
+    }
+
+    function addLoadingIndicator() {
+        const id = 'loading-' + Date.now();
+        const history = document.getElementById('chatHistory');
+        const html = `
+            <div id="${id}" class="flex gap-4 animate-pulse">
+                <div class="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0">
+                     <span class="material-symbols-outlined text-brand-500">smart_toy</span>
+                </div>
+                <div class="space-y-1">
+                    <div class="font-bold text-sm text-[#1a1c1e] dark:text-white">Auralis Avatar</div>
+                    <div class="p-4 rounded-2xl rounded-tl-none bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-800 shadow-sm w-24 flex items-center gap-1">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        history.insertAdjacentHTML('beforeend', html);
+        history.scrollTo(0, history.scrollHeight);
+        return id;
+    }
+
+    function removeMessage(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+</script>
+{% endblock %}

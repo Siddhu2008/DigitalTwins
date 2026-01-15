@@ -1,0 +1,180 @@
+<!-- Premium Sidebar Component -->
+<aside id="dashboardSidebar"
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-[#f4f5f7] dark:bg-[#1a1c1e] md:relative md:flex flex-col py-8 transition-transform duration-300 -translate-x-full md:translate-x-0 border-r border-gray-100 dark:border-gray-800">
+
+    <div class="px-8 mb-10 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"
+                    class="w-5 h-5 object-contain invert dark:invert-0">
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-[#1a1c1e] dark:text-white">Auralis</h1>
+        </div>
+        <button onclick="toggleSidebar()" class="md:hidden text-gray-400">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+
+    <nav class="flex-grow px-4 space-y-1 overflow-y-auto custom-scrollbar">
+        <!-- Standalone Top Item (Dashboard Style) -->
+        <a href="/dashboard/overview"
+            class="flex items-center gap-4 px-4 py-3 w-full text-left transition-colors group {{ 'text-[#1a1c1e] dark:text-white font-bold' if active_page == 'overview' else 'text-gray-500 dark:text-gray-400 hover:text-[#1a1c1e] dark:hover:text-white' }}">
+            <span
+                class="material-symbols-outlined text-[22px] group-hover:scale-110 transition-transform">grid_view</span>
+            <span class="text-[15px] font-semibold">Dashboard</span>
+        </a>
+
+        <!-- Communication Section (Collapsible) -->
+        <div class="space-y-1">
+            <button onclick="toggleSection('commSection')"
+                class="flex items-center gap-4 px-4 py-3 w-full text-left text-[#1a1c1e] dark:text-white font-bold group">
+                <span class="material-symbols-outlined text-[22px]">chat_bubble_outline</span>
+                <span class="flex-1 text-[15px]">Communication</span>
+                <span id="commSectionChevron"
+                    class="material-symbols-outlined text-gray-400 text-lg transition-transform duration-200">expand_more</span>
+            </button>
+            <div id="commSection" class="relative pl-10 space-y-1 overflow-hidden transition-all duration-300"
+                style="height: auto;">
+                <!-- Stem -->
+                <div class="absolute left-[23px] top-0 bottom-6 w-px bg-gray-200 dark:bg-gray-800"></div>
+                <a href="/dashboard/meetings" class="child-nav {{ 'active' if active_page == 'meetings' else '' }}">
+                    Create Meeting
+                </a>
+                <a href="/dashboard/calls" class="child-nav {{ 'active' if active_page == 'calls' else '' }}">
+                    Direct Calls
+                </a>
+            </div>
+        </div>
+
+        <!-- Chatbot Section -->
+        <div class="space-y-1">
+            <button onclick="toggleSection('workSection')"
+                class="flex items-center gap-4 px-4 py-3 w-full text-left text-gray-500 dark:text-gray-400 font-semibold group">
+                <span class="material-symbols-outlined text-[22px]">smart_toy</span>
+                <span class="flex-1 text-[15px]">Chatbot</span>
+                <span id="workSectionChevron"
+                    class="material-symbols-outlined text-gray-400 text-lg transition-transform duration-200">expand_more</span>
+            </button>
+            <div id="workSection" class="relative pl-10 space-y-1 overflow-hidden transition-all duration-300 h-0">
+                <div class="absolute left-[23px] top-0 bottom-6 w-px bg-gray-200 dark:bg-gray-800"></div>
+                <a href="/dashboard/avatar" class="child-nav">
+                    Avatar
+                </a>
+                <a href="/dashboard/summary_of_meetings" class="child-nav">
+                    Summary of meetings
+                </a>
+                <a href="/dashboard/summary_of_calls" class="child-nav">
+                    Summary of calls
+                </a>
+            </div>
+        </div>
+
+        <a href="/settings/"
+            class="flex items-center gap-4 px-4 py-3 w-full text-left transition-colors group {{ 'text-[#1a1c1e] dark:text-white font-bold bg-white dark:bg-white/10 rounded-xl shadow-sm' if active_page == 'settings' else 'text-gray-500 dark:text-gray-400 hover:text-[#1a1c1e] dark:hover:text-white' }}">
+            <span class="material-symbols-outlined text-[22px]">settings</span>
+            <span class="text-[15px] font-semibold">Setting</span>
+        </a>
+    </nav>
+
+    <div class="px-4 mt-auto">
+        <div
+            class="bg-white/50 dark:bg-white/5 rounded-2xl p-4 flex items-center justify-between border border-white/20 shadow-sm">
+            <div class="flex items-center gap-3 overflow-hidden">
+                <div
+                    class="w-10 h-10 rounded-xl bg-black dark:bg-white flex items-center justify-center text-white dark:text-black font-bold text-xs">
+                    <span id="userNameInitials">VU</span>
+                </div>
+                <div class="overflow-hidden">
+                    <p id="userNameDisplaySidebar" class="text-xs font-bold truncate text-[#1a1c1e] dark:text-white">
+                        User</p>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Business</p>
+                </div>
+            </div>
+            <button onclick="handleLogout()" class="text-gray-400 hover:text-red-500 transition-colors p-1">
+                <span class="material-symbols-outlined text-lg">logout</span>
+            </button>
+        </div>
+    </div>
+</aside>
+
+<style>
+    .child-nav {
+        @apply flex items-center gap-3 px-6 py-2.5 w-full text-left text-[#1a1c1e]/60 dark:text-white/60 font-medium transition-all relative;
+        font-size: 14px;
+    }
+
+    .child-nav::before {
+        content: '';
+        @apply absolute left-[-17px] top-[16px] w-[14px] h-[14px] border-l-2 border-b-2 border-gray-200 dark:border-gray-800 rounded-bl-xl transition-colors;
+    }
+
+    .child-nav.active {
+        @apply text-[#1a1c1e] dark:text-white font-bold bg-white dark:bg-white/10 rounded-xl shadow-sm;
+    }
+
+    .child-nav.active::before {
+        @apply border-gray-300 dark:border-gray-600;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 10px;
+    }
+</style>
+
+<script>
+    // Accordion toggle function
+    function toggleSection(id) {
+        const section = document.getElementById(id);
+        const chevron = document.getElementById(id + 'Chevron');
+        if (!section || !chevron) return;
+
+        const isOpen = section.style.height !== '0px' && section.style.height !== '';
+
+        if (isOpen) {
+            section.style.height = '0px';
+            chevron.style.transform = 'rotate(0deg)';
+        } else {
+            section.style.height = section.scrollHeight + 'px';
+            chevron.style.transform = 'rotate(-180deg)';
+        }
+    }
+
+    // Sidebar toggle for mobile
+    function toggleSidebar() {
+        const sidebar = document.getElementById('dashboardSidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (!sidebar) return;
+
+        const isOpen = !sidebar.classList.contains('-translate-x-full');
+
+        if (isOpen) {
+            sidebar.classList.add('-translate-x-full');
+            if (overlay) overlay.classList.add('hidden');
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+            if (overlay) overlay.classList.remove('hidden');
+        }
+    }
+
+    // User profile population
+    (function () {
+        const rawUser = localStorage.getItem('auralis_user');
+        if (rawUser) {
+            try {
+                const currentUser = JSON.parse(rawUser);
+                const nameDispSidebar = document.getElementById('userNameDisplaySidebar');
+                if (nameDispSidebar) nameDispSidebar.textContent = currentUser.name;
+                const initialsDisp = document.getElementById('userNameInitials');
+                if (initialsDisp) {
+                    const parts = currentUser.name.split(' ');
+                    initialsDisp.textContent = parts.map(p => p[0]).join('').toUpperCase().substring(0, 2);
+                }
+            } catch (e) { }
+        }
+    })();
+</script>

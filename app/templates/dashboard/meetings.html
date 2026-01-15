@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <!-- Mobile Header -->
+    <div
+        class="fixed top-0 left-0 right-0 z-40 md:hidden bg-white dark:bg-[#1a1c1e] border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        <h1 class="text-lg font-bold">Auralis</h1>
+        <div class="w-10"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+    <!-- Sidebar -->
+    {% set active_page = 'meetings' %}
+    {% include 'components/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col pt-16 md:pt-0 overflow-hidden relative bg-[#f8f9fa] dark:bg-[#1a1c1e]">
+        <div class="flex-1 flex flex-col overflow-hidden animate-fade-in px-4 md:px-8 lg:px-24">
+            <div class="max-w-4xl pt-8 md:pt-16 mx-auto w-full">
+                <!-- Heading -->
+                <div class="space-y-4 text-center mb-12">
+                    <h2
+                        class="text-4xl md:text-5xl lg:text-7xl font-outfit font-bold leading-tight text-[#202124] dark:text-white">
+                        Video calls and meetings for everyone
+                    </h2>
+                    <p
+                        class="text-lg md:text-xl lg:text-2xl text-[#5f6368] dark:text-[#bdc1c6] font-normal max-w-2xl mx-auto leading-relaxed">
+                        Connect, collaborate, and celebrate from anywhere with Auralis Meet
+                    </p>
+                </div>
+
+                <!-- Action Row -->
+                <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6 pt-4">
+                    <!-- New meeting button -->
+                    <button onclick="openCreateMeetingModal()"
+                        class="w-full md:w-auto bg-brand-500 hover:bg-brand-600 text-white px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-3 transition-all shadow-lg shadow-brand-500/20 active:scale-95">
+                        <span class="material-symbols-outlined">video_call</span>
+                        New meeting
+                    </button>
+
+                    <!-- Input and Join -->
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="relative flex-1 md:flex-none">
+                            <span
+                                class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">keyboard</span>
+                            <input type="text" id="meetCodeInput" placeholder="Enter a code or link"
+                                class="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none md:w-80 transition-all placeholder:text-gray-400 text-sm">
+                        </div>
+                        <button onclick="joinByCode()" id="btnJoinCode"
+                            class="text-gray-400 font-bold px-6 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl disabled:opacity-50 transition-all text-sm"
+                            disabled>
+                            Join
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Meetings List Section -->
+                <div class="mt-16 pt-8 border-t border-gray-300 dark:border-gray-700">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Your Meetings</h3>
+                    <div id="meetingsList" class="space-y-4">
+                        <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <p>No meetings yet. Start one to get began!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Divider & Footer -->
+                <div class="border-t border-gray-300 dark:border-gray-700 w-full mt-16 pt-8">
+                    <p class="text-[14px] text-[#5f6368] dark:text-[#bdc1c6]">
+                        <a href="#" class="text-[#1a73e8] hover:underline">Learn more</a> about Auralis Meet
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Create Meeting Modal -->
+{% include 'dashboard/components/_create_meeting_modal.html' %}
+{% include 'dashboard/components/_later_modal.html' %}
+
+<script>
+    checkAuth();
+
+    const codeInput = document.getElementById('meetCodeInput');
+    const joinBtn = document.getElementById('btnJoinCode');
+
+    if (codeInput) {
+        codeInput.addEventListener('input', () => {
+            const val = codeInput.value.trim();
+            joinBtn.disabled = !val;
+            if (val) {
+                joinBtn.classList.add('text-[#1a73e8]');
+                joinBtn.classList.remove('text-gray-400');
+            } else {
+                joinBtn.classList.remove('text-[#1a73e8]');
+                joinBtn.classList.add('text-gray-400');
+            }
+        });
+        codeInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') joinByCode(); });
+    }
+
+    // Determine meeting status badge
+    function getStatusBadge(meeting) {
+        const now = new Date();
+        const createdAt = new Date(meeting.created_at);
+        const endedAt = meeting.ended_at ? new Date(meeting.ended_at) : null;
+        
+        // If explicitly ended
+        if (endedAt && now > endedAt) {
+            return { text: 'Ended', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
+        }
+        
+        // If status is active or in active_meetings
+        if (meeting.status === 'active') {
+            return { text: 'Running', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' };
+        }
+        
+        // If scheduled for future
+        if (meeting.is_scheduled || meeting.status === 'scheduled') {
+            return { text: 'Scheduled', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' };
+        }
+        
+        // Default to ended if meeting is old
+        if (now - createdAt > 3600000) { // More than 1 hour old
+            return { text: 'Ended', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
+        }
+        
+        return { text: 'Running', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' };
+    }
+
+    // Load and display meetings
+    async function loadMeetings() {
+        try {
+            const meetings = await apiCall('/meetings/', 'GET');
+            const listContainer = document.getElementById('meetingsList');
+            
+            if (!meetings || meetings.length === 0) {
+                listContainer.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-8"><p>No meetings yet. Start one to get began!</p></div>';
+                return;
+            }
+            
+            listContainer.innerHTML = meetings.map(m => {
+                const badge = getStatusBadge(m);
+                const dateStr = new Date(m.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                return `
+                    <div class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3">
+                                <span class="material-symbols-outlined text-gray-400">videocam</span>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 dark:text-white">${m.title || 'Untitled Meeting'}</h4>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">${dateStr}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${badge.color}">
+                                ${badge.text}
+                            </span>
+                            ${m.meeting_id ? `<button onclick="window.location.href='/meet/${m.meeting_id}'" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-all">Join</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (err) {
+            console.error('Failed to load meetings:', err);
+        }
+    }
+
+    // Load meetings on page load
+    loadMeetings();
+    // Refresh meetings every 30 seconds
+    setInterval(loadMeetings, 30000);
+
+    function joinByCode() {
+        const val = codeInput.value.trim();
+        let code = val;
+        if (code.includes('/meet/')) code = code.split('/meet/')[1].split('?')[0].split('#')[0];
+        code = code.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+        window.location.href = `/meet/${code}`;
+    }
+
+    function openCreateMeetingModal() {
+        document.getElementById('createMeetingModal').classList.remove('hidden');
+    }
+
+    function closeCreateMeetingModal() {
+        document.getElementById('createMeetingModal').classList.add('hidden');
+    }
+
+    async function handleMeetCreation(type) {
+        let title = document.getElementById('meetingTitleInput').value.trim();
+        if (!title) title = "New Meeting";
+
+        if (type === 'schedule') {
+            // Handle scheduled meeting
+        } else {
+            try {
+                const res = await apiCall('/meet/create', 'POST', { title, type });
+                closeCreateMeetingModal();
+                if (type === 'instant') {
+                    window.location.href = res.url;
+                } else {
+                    document.getElementById('generatedLink').textContent = window.location.host + res.url;
+                    document.getElementById('laterModal').classList.remove('hidden');
+                }
+                // Reload meetings list
+                setTimeout(loadMeetings, 1000);
+            } catch (err) { 
+                alert('Failed to create meeting.'); 
+            }
+        }
+    }
+
+    function copyGeneratedLink() {
+        navigator.clipboard.writeText('https://' + document.getElementById('generatedLink').textContent).then(() => alert('Copied!'));
+    }
+
+    function closeLaterModal() {
+        document.getElementById('laterModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

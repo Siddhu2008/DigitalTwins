@@ -8,4 +8,3 @@ PyJWT
 authlib
 requests
 flask-socketio
-simple-websocket

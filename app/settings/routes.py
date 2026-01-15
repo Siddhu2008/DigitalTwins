@@ -7,7 +7,7 @@ from bson.objectid import ObjectId
 
 @settings_bp.route('/')
 def index():
-    return render_template('settings/index.html')
+    return render_template('dashboard/setting.html')
 
 @settings_bp.route('/api/profile', methods=['GET'])
 @token_required

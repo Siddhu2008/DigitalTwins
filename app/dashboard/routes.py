@@ -8,7 +8,25 @@ import datetime
 def index():
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
-    return render_template('dashboard/index.html')
+    return redirect(url_for('dashboard.overview'))
+
+@dashboard_bp.route('/overview')
+def overview():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    return render_template('dashboard/overview.html')
+
+@dashboard_bp.route('/meetings')
+def meetings():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    return render_template('dashboard/meetings.html')
+
+@dashboard_bp.route('/calls')
+def calls():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    return render_template('dashboard/calls.html')
 
 @dashboard_bp.route('/calendar')
 @token_required
@@ -41,6 +59,25 @@ def get_calendar_events(current_user):
             print(f"Error fetching calendar: {e}")
             return jsonify({'error': str(e)}), 500
 
+
     return jsonify(calendar_events), 200
+
+@dashboard_bp.route('/avatar')
+def avatar():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    return render_template('dashboard/avatar.html')
+
+@dashboard_bp.route('/summary_of_meetings')
+def summary_of_meetings():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    return render_template('dashboard/summary_of_meetings.html')
+
+@dashboard_bp.route('/summary_of_calls')
+def summary_of_calls():
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    return render_template('dashboard/summary_of_calls.html')
 
 

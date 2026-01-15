@@ -1,36 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex-grow flex items-center justify-center p-6 bg-brand-50 dark:bg-gray-900">
-    <div
-        class="w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
-        <div class="mb-8 text-center">
-            <div class="w-20 h-20 mx-auto mb-6">
+
+<div class="flex-grow flex items-center justify-center p-6 bg-[#f8f9fa] dark:bg-[#1a1c1e]">
+    <div class="w-full max-w-lg glass rounded-[2.5rem] shadow-2xl p-10 border border-white/20 animate-fade-in">
+        <div class="mb-10 text-center">
+            <div
+                class="w-20 h-20 mx-auto mb-6 bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-lg flex items-center justify-center">
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Auralis Logo"
                     class="w-full h-full object-contain">
             </div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Create Auralis Account</h1>
-            <p class="text-gray-500 dark:text-gray-400">Join Auralis and clone your communication style</p>
+            <h1 class="text-4xl font-outfit font-bold text-gray-900 dark:text-white mb-2">Create Account</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Join Auralis and clone your communication style</p>
         </div>
 
         <form id="signupForm" class="space-y-5">
             <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full
+                <label for="name" class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Full
                     Name</label>
                 <input type="text" id="name" name="name" required
-                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white transition-all">
+                    class="w-full px-6 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none text-gray-900 dark:text-white transition-all text-sm">
             </div>
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email
+                <label for="email"
+                    class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Email
                     Address</label>
                 <input type="email" id="email" name="email" required
-                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white transition-all">
+                    class="w-full px-6 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none text-gray-900 dark:text-white transition-all text-sm">
             </div>
             <div>
                 <label for="password"
-                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                    class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
                 <input type="password" id="password" name="password" required
-                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white transition-all">
+                    class="w-full px-6 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none text-gray-900 dark:text-white transition-all text-sm">
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -59,7 +61,7 @@
             <div id="errorMessage" class="hidden text-red-500 text-sm text-center"></div>
 
             <button type="submit"
-                class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 px-6 rounded-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-brand-500/30">
+                class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-4 px-6 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg shadow-brand-500/20">
                 Create Account
             </button>
 

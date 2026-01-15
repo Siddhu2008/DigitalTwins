@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <!-- Mobile Header -->
+    <div
+        class="fixed top-0 left-0 right-0 z-40 md:hidden bg-white dark:bg-[#1a1c1e] border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between">
+        <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        <h1 class="text-lg font-bold">Auralis</h1>
+        <div class="w-10"></div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
+    <!-- Sidebar -->
+    {% set active_page = 'calls' %}
+    {% include 'components/_sidebar.html' %}
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col pt-16 md:pt-0 overflow-hidden relative bg-[#f8f9fa] dark:bg-[#1a1c1e]">
+        <div class="flex-1 flex flex-col overflow-hidden animate-fade-in px-4 md:px-8 lg:px-24">
+            <div class="max-w-4xl pt-8 md:pt-16 mx-auto w-full">
+                <div class="space-y-4 text-center mb-12">
+                    <h2
+                        class="text-4xl md:text-5xl lg:text-7xl font-outfit font-bold leading-tight text-[#202124] dark:text-white">
+                        Direct calls and video
+                    </h2>
+                    <p
+                        class="text-lg md:text-xl lg:text-2xl text-[#5f6368] dark:text-[#bdc1c6] font-normal mx-auto leading-relaxed">
+                        Instant connection with your contacts
+                    </p>
+                </div>
+
+                <div class="max-w-2xl mx-auto space-y-8">
+                    <!-- User Search Input -->
+                    <div class="relative group">
+                        <span
+                            class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand-500 transition-colors">search</span>
+                        <input type="text" id="userSearchInput" oninput="handleUserSearch()"
+                            placeholder="Search by name or email"
+                            class="w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none shadow-sm transition-all text-sm">
+                    </div>
+
+                    <!-- Search Results -->
+                    <div id="searchResults" class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                        <!-- Population via JS -->
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="pt-10 border-t border-gray-100 dark:border-gray-800">
+                        <h3 class="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4 ml-1">Recent
+                            Activity</h3>
+                        <div id="recentCallsList" class="space-y-3">
+                            <p class="text-gray-400 text-sm italic px-1">Loading activity...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modals -->
+{% include 'dashboard/components/_outgoing_call_modal.html' %}
+{% include 'dashboard/components/_incoming_call_modal.html' %}
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+    checkAuth();
+
+    const socket = io();
+    const currentUser = JSON.parse(localStorage.getItem('auralis_user')) || { name: 'User' };
+
+    if (currentUser && currentUser.id) {
+        socket.emit('register_session', { user_id: currentUser.id });
+    }
+
+    let searchTimeout;
+    async function handleUserSearch() {
+        const query = document.getElementById('userSearchInput').value.trim();
+        const resultsEl = document.getElementById('searchResults');
+        if (query.length < 2) { resultsEl.innerHTML = ''; return; }
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+            try {
+                const res = await apiCall(`/auth/search_users?q=${query}`);
+                resultsEl.innerHTML = res.map(u => `
+                    <div class="flex items-center justify-between p-4 bg-white dark:bg-[#202124] rounded-xl border border-gray-100 dark:border-gray-800 hover:shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-[#1a73e8]/10 rounded-full flex items-center justify-center text-[#1a73e8] font-bold">${u.name.charAt(0)}</div>
+                            <div><h4 class="font-semibold text-sm">${u.name}</h4><p class="text-xs text-gray-400">${u.email}</p></div>
+                        </div>
+                        <button onclick="initiateCall('${u.id}', '${u.name}')" class="bg-[#1a73e8] hover:bg-[#1557b0] text-white px-5 py-2 rounded-full text-xs font-bold transition-all uppercase tracking-wider">Call</button>
+                    </div>
+                `).join('');
+                if (!res.length) resultsEl.innerHTML = '<p class="text-center text-gray-400 text-sm py-4">No contacts found.</p>';
+            } catch (e) { }
+        }, 300);
+    }
+
+    async function initiateCall(targetId, targetName) {
+        document.getElementById('targetNameDisplay').textContent = targetName;
+        document.getElementById('outgoingCallModal').classList.remove('hidden');
+        try {
+            const res = await apiCall('/meet/create', 'POST', { title: `Call with ${targetName}`, type: 'instant' });
+            socket.emit('initiate_call', { target_user_id: targetId, caller_name: currentUser.name, caller_id: currentUser.id, meeting_id: res.meetingId });
+        } catch (e) { document.getElementById('outgoingCallModal').classList.add('hidden'); }
+    }
+
+    async function loadRecentCalls() {
+        try {
+            const meetings = await apiCall('/meetings/');
+            const container = document.getElementById('recentCallsList');
+            const calls = meetings.filter(m => m.type === 'instant').slice(0, 5);
+            if (calls.length > 0) {
+                container.innerHTML = calls.map(c => `
+                    <div class="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-800/10 rounded-xl border border-gray-50 dark:border-gray-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-[#1a73e8]/10 rounded-full flex items-center justify-center text-[#1a73e8]"><span class="material-symbols-outlined text-sm">videocam</span></div>
+                            <div><h4 class="text-xs font-semibold">${c.title}</h4><p class="text-[9px] text-gray-400 uppercase tracking-widest">${new Date(c.created_at).toLocaleDateString()}</p></div>
+                        </div>
+                        <button onclick="window.location.href='/meet/${c.meeting_id}'" class="text-[#1a73e8] text-[10px] font-bold uppercase tracking-widest hover:underline">Redial</button>
+                    </div>
+                `).join('');
+            } else { container.innerHTML = '<p class="text-gray-400 text-sm italic px-1">No recent calling activity.</p>'; }
+        } catch (e) { }
+    }
+
+    loadRecentCalls();
+
+    // Socket handlers
+    let activeCallData = null;
+    socket.on('incoming_call', (data) => {
+        activeCallData = data;
+        document.getElementById('callerNameDisplay').textContent = data.caller_name;
+        document.getElementById('incomingCallModal').classList.remove('hidden');
+    });
+
+    function acceptCall() {
+        window.location.href = `/meet/${activeCallData.meeting_id}`;
+    }
+
+    function rejectCall() {
+        socket.emit('call_rejected', { caller_sid: activeCallData.caller_sid });
+        document.getElementById('incomingCallModal').classList.add('hidden');
+    }
+
+    function cancelCall() {
+        document.getElementById('outgoingCallModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}

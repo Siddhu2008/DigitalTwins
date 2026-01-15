@@ -1,0 +1,31 @@
+<!-- Later Modal -->
+<div id="laterModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeLaterModal()"></div>
+
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center">
+            <div
+                class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-[#1e1e1e] text-left shadow-2xl transition-all w-full max-w-sm border border-gray-100 dark:border-gray-700">
+                <div class="p-6">
+                    <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Here's the link to your meeting
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Copy this link and send it to people you
+                        want to meet with.</p>
+
+                    <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-3 rounded-xl mb-2">
+                        <span id="generatedLink"
+                            class="flex-1 text-sm text-gray-600 dark:text-gray-300 truncate">example.com/meet/abc-def-ghi</span>
+                        <button onclick="copyGeneratedLink()" class="text-brand-600 hover:text-brand-500">
+                            <span class="material-symbols-outlined text-[20px]">content_copy</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-[#252525] px-4 py-3 sm:px-6 flex justify-end">
+                    <button type="button"
+                        class="text-sm font-semibold text-gray-900 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                        onclick="closeLaterModal()">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

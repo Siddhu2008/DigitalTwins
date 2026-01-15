@@ -30,6 +30,7 @@ def handle_call(data):
         emit('receiving_call', {
             'caller_id': caller_id,
             'caller_name': caller_name,
+            'caller_sid': request.sid,
             'meeting_id': data.get('meeting_id')
         }, room=target_sid)
     else:
@@ -37,8 +38,7 @@ def handle_call(data):
 
 @socketio.on('accept_call')
 def handle_accept(data):
-    caller_id = data.get('caller_id')
-    caller_sid = user_to_sid.get(caller_id)
+    caller_sid = data.get('caller_sid')
     if caller_sid:
         emit('call_accepted', {
             'meeting_id': data.get('meeting_id')
@@ -46,8 +46,7 @@ def handle_accept(data):
 
 @socketio.on('decline_call')
 def handle_decline(data):
-    caller_id = data.get('caller_id')
-    caller_sid = user_to_sid.get(caller_id)
+    caller_sid = data.get('caller_sid')
     if caller_sid:
         emit('call_declined', room=caller_sid)
 
@@ -69,16 +68,21 @@ def handle_join(data):
     if meeting_id not in rooms:
         rooms[meeting_id] = {}
     
-    # Notify others and send room info to joiner
+    # Add user to room first
+    rooms[meeting_id][request.sid] = {'name': name, 'role': role}
+    
+    # Send existing participants to new user
     participant_list = []
     for sid, n in rooms[meeting_id].items():
-        p_name = n['name'] if isinstance(n, dict) else str(n)
-        participant_list.append({'sid': sid, 'name': p_name})
+        if sid != request.sid:  # Exclude self from initial list
+            p_name = n['name'] if isinstance(n, dict) else str(n)
+            participant_list.append({'sid': sid, 'name': p_name})
         
     emit('room_info', {'users': participant_list}, room=request.sid)
-    rooms[meeting_id][request.sid] = {'name': name, 'role': role}
-    emit('user_joined', {'sid': request.sid, 'name': name}, room=meeting_id, include_self=False)
-    print(f"User {name} ({request.sid}) joined meeting {meeting_id} as {role}")
+    
+    # Notify all users (including self) about new joiner
+    emit('user_joined', {'sid': request.sid, 'name': name}, room=meeting_id)
+    print(f"User {name} ({request.sid}) joined meeting {meeting_id} as {role}. Total users: {len(rooms[meeting_id])}")
 
 @socketio.on('signal')
 def handle_signal(data):
@@ -114,11 +118,15 @@ def handle_disconnect():
 @socketio.on('send_chat')
 def handle_chat(data):
     meeting_id = data.get('meetingId')
-    emit('chat_message', {
+    sender_name = rooms.get(meeting_id, {}).get(request.sid, {}).get('name', 'Unknown')
+    message_data = {
         'sid': request.sid,
-        'from': rooms.get(meeting_id, {}).get(request.sid, {}).get('name', 'Unknown'),
+        'from': sender_name,
         'message': data.get('message')
-    }, room=meeting_id)
+    }
+    # Emit to ALL users including sender
+    emit('chat_message', message_data, room=meeting_id)
+    print(f"Chat from {sender_name} in {meeting_id}: {data.get('message')}")
 
 @socketio.on('reaction')
 def handle_reaction(data):

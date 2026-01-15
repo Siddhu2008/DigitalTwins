@@ -14,8 +14,10 @@
                 <p class="text-xs text-gray-500 uppercase tracking-wider">Meeting code</p>
                 <p id="meetingCode" class="text-lg font-bold text-white font-mono">{{ meeting_id }}</p>
             </div>
-            <button onclick="copyMeetingCode()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors">
-                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">content_copy</span>Copy Link
+            <button onclick="copyMeetingCode()"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors">
+                <span class="material-symbols-outlined"
+                    style="font-size: 18px; vertical-align: middle; margin-right: 4px;">content_copy</span>Copy Link
             </button>
         </div>
         <div class="flex items-center gap-8">
@@ -41,7 +43,8 @@
                     class="relative bg-gradient-to-br from-[#3c4043] to-[#2d2f32] rounded-3xl overflow-hidden flex flex-col items-center justify-center border-2 border-white/5 shadow-2xl group transition-all duration-500 hover:border-brand-500/50">
                     <video id="localVideo" autoplay muted playsinline
                         class="w-full h-full object-cover transform scale-x-[-1]"></video>
-                    <div id="videoPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#3c4043] to-[#2d2f32] hidden">
+                    <div id="videoPlaceholder"
+                        class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#3c4043] to-[#2d2f32] hidden">
                         <span class="material-symbols-outlined text-5xl text-gray-500 mb-4">videocam_off</span>
                         <p class="text-gray-400 text-sm">Camera is off</p>
                     </div>
@@ -66,6 +69,12 @@
 
             <!-- Toast Notifications -->
             <div id="toastContainer" class="absolute top-4 right-4 z-50 flex flex-col gap-2"></div>
+
+            <!-- Connection Status -->
+            <div id="connectionStatus"
+                class="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-4 py-1 rounded-full text-xs font-bold hidden shadow-lg backdrop-blur-sm z-50">
+                Disconnected
+            </div>
         </div>
 
         <!-- RIGHT SIDEBARS -->
@@ -90,7 +99,8 @@
                     <div class="relative flex items-center gap-2 bg-[#3c4043] rounded-full px-4 py-1">
                         <input type="text" id="chatInput" placeholder="Send a message"
                             class="flex-1 bg-transparent text-white placeholder-gray-400 py-3 outline-none text-sm">
-                        <button type="submit" class="text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors">
+                        <button type="submit"
+                            class="text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors">
                             <span class="material-symbols-outlined">send</span>
                         </button>
                     </div>
@@ -128,7 +138,7 @@
                 <span class="material-symbols-outlined">closed_caption</span>
             </button>
 
-            <button onclick="leaveCall()"
+            <button onclick="leaveCall()" title="End Call"
                 class="w-20 h-10 rounded-3xl bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all shadow-lg shadow-red-500/30">
                 <span class="material-symbols-outlined text-white">call_end</span>
             </button>
@@ -278,6 +288,7 @@
             opacity: 0;
             transform: translateY(-20px);
         }
+
         to {
             opacity: 1;
             transform: translateY(0);
@@ -304,7 +315,8 @@
 
 <script>
     const meetingId = "{{ meeting_id }}";
-    const socket = io();
+    // Force websocket transport for better stability
+    const socket = io({ transports: ['websocket'], upgrade: false });
     const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
     // --- STATE ---
@@ -314,6 +326,32 @@
     let isVideo = true, isAudio = true, isCaptions = false, isHandRaised = false;
     let activeTab = null;
     let meetingStartTime = null;
+
+    // --- SOCKET MONITORING ---
+    socket.on('connect', () => {
+        console.log("Socket connected:", socket.id);
+        const el = document.getElementById('connectionStatus');
+        el.classList.add('hidden');
+        el.textContent = "Connected";
+        el.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-green-500/90 text-white px-4 py-1 rounded-full text-xs font-bold hidden shadow-lg backdrop-blur-sm z-50";
+
+        // Re-join if this was a reconnect
+        if (myName && meetingId) {
+            socket.emit('join_meeting', { meetingId, name: myName });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log("Socket disconnected");
+        const el = document.getElementById('connectionStatus');
+        el.textContent = "Disconnected - Trying to reconnect...";
+        el.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm z-50";
+        el.classList.remove('hidden');
+    });
+
+    socket.on('connect_error', (err) => {
+        console.error("Socket error:", err);
+    });
 
     // --- RECOGNITION (Captions) ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -334,6 +372,7 @@
     }
 
     // --- INITIALIZATION ---
+    // --- INITIALIZATION ---
     async function init() {
         // Set meeting start time
         meetingStartTime = new Date();
@@ -348,27 +387,35 @@
         myName = userCache.name || prompt("Enter your name:") || "Guest_" + Math.floor(Math.random() * 999);
         document.getElementById('localNameDisplay').textContent = myName + " (You)";
 
+        // Try to get media, but join even if it fails
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             document.getElementById('localVideo').srcObject = localStream;
-
-            socket.emit('join_meeting', { meetingId, name: myName });
-            renderParticipants();
+            // Mute local video to prevent feedback loop
+            document.getElementById('localVideo').muted = true;
         } catch (e) {
             console.error('Media access error:', e.name, e.message);
-            let errorMsg = "Camera/Mic access denied.";
-            
+            let errorMsg = "Camera/Mic blocked or in use. Joining as viewer.";
+
             if (e.name === 'NotReadableError' || e.message.includes('Device in use')) {
-                errorMsg = "Camera is already in use by another application. Please close other apps using your camera and try again.";
+                errorMsg = "Camera in use. Joining with audio/video OFF.";
             } else if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                errorMsg = "Please allow camera and microphone access.";
-            } else if (e.name === 'NotFoundError') {
-                errorMsg = "Camera or microphone not found on this device.";
+                errorMsg = "Permission denied. Joining as viewer.";
             }
-            
+
             showToast(errorMsg, 'error');
-            console.error('Camera error:', errorMsg, e);
+            // Show placeholder since no video
+            document.getElementById('videoPlaceholder').classList.remove('hidden');
+            // Disable buttons
+            isVideo = false; isAudio = false;
+            toggleVideo(); toggleAudio();
         }
+
+        // JOIN MEETING regardless of media success
+        console.log("Emitting join_meeting command...");
+        showToast("Joining meeting...", "info");
+        socket.emit('join_meeting', { meetingId, name: myName });
+        renderParticipants();
     }
 
     function updateMeetingDuration() {
@@ -376,7 +423,7 @@
         const elapsed = Math.floor((new Date() - meetingStartTime) / 1000);
         const minutes = Math.floor(elapsed / 60);
         const seconds = elapsed % 60;
-        document.getElementById('meetingDuration').textContent = 
+        document.getElementById('meetingDuration').textContent =
             `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 
@@ -392,6 +439,8 @@
 
     socket.on('user_joined', (data) => {
         console.log('User joined:', data);
+        if (data.sid === socket.id) return; // Prevent connecting to self
+
         showToast(`${data.name} joined`);
         initConnection(data.sid, data.name, false);
         updateParticipantCount();
@@ -433,7 +482,7 @@
         const from = data.from;
         const type = data.type;
         const signalData = data.data;
-        
+
         console.log(`Signal received from ${from}:`, type, signalData);
 
         if (!peers[from]) {
@@ -445,7 +494,7 @@
                 localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
             }
             peers[from] = { connection: pc, name: from, stream: null };
-            
+
             pc.ontrack = (event) => {
                 console.log(`Track received from ${from}:`, event.track.kind);
                 if (!peers[from]) peers[from] = { connection: pc, name: from, stream: null };
@@ -464,7 +513,7 @@
 
         try {
             const pc = peers[from].connection;
-            
+
             if (type === 'offer') {
                 console.log(`Processing offer from ${from}`, signalData);
                 await pc.setRemoteDescription(signalData);
@@ -494,7 +543,7 @@
 
     function initConnection(sid, name, isInitiator) {
         console.log(`initConnection called for ${sid} (${name}), isInitiator=${isInitiator}`);
-        
+
         if (peers[sid]) {
             console.log(`Connection for ${sid} already exists`);
             return;
@@ -502,10 +551,10 @@
 
         const pc = new RTCPeerConnection(rtcConfig);
         console.log(`RTCPeerConnection created for ${sid}`);
-        
+
         // Initialize peer object FIRST
         peers[sid] = { connection: pc, name: name, stream: null };
-        
+
         // Add local tracks
         if (localStream) {
             const tracks = localStream.getTracks();
@@ -572,22 +621,12 @@
                     console.error(`Error in onnegotiationneeded for ${sid}:`, e);
                 }
             };
-            
+
             // For some browsers, onnegotiationneeded may not fire automatically
             // So we manually create an offer after a short delay
-            setTimeout(async () => {
-                if (peers[sid] && pc.signalingState === 'stable' && !peers[sid].offerSent) {
-                    try {
-                        console.log(`Manually creating offer for ${sid}`);
-                        const offer = await pc.createOffer();
-                        await pc.setLocalDescription(offer);
-                        peers[sid].offerSent = true;
-                        socket.emit('signal', { type: 'offer', data: offer, to: sid });
-                    } catch (e) {
-                        console.error(`Error manually creating offer for ${sid}:`, e);
-                    }
-                }
-            }, 500);
+            // Manual offer fallback removed to prevent glare/race conditions
+            // onnegotiationneeded is reliable in modern browsers
+
         }
     }
 
@@ -601,12 +640,20 @@
         el.id = 'video-' + sid;
         el.className = "relative bg-[#3c4043] rounded-3xl overflow-hidden flex items-center justify-center border-2 border-white/5 shadow-2xl group transition-all duration-500 hover:border-brand-500/50";
         el.innerHTML = `
-            <video autoplay playsinline class="w-full h-full object-cover"></video>
+            <video autoplay playsinline controls class="w-full h-full object-cover"></video>
             <div class="absolute bottom-6 left-6 glass px-4 py-2 rounded-2xl text-sm font-bold shadow-lg font-outfit">
                 ${name}
             </div>
         `;
-        el.querySelector('video').srcObject = stream;
+        const videoEl = el.querySelector('video');
+        videoEl.srcObject = stream;
+
+        // Explicitly try to play
+        videoEl.play().catch(e => {
+            console.error("Auto-play failed for remote video:", e);
+            showToast("Click play on the video if it doesn't start", "info");
+        });
+
         document.getElementById('videoGrid').appendChild(el);
     }
 
@@ -812,7 +859,7 @@
         if (type === 'success') bgColor = 'bg-green-600';
         else if (type === 'error') bgColor = 'bg-red-600';
         else if (type === 'info') bgColor = 'bg-blue-600';
-        
+
         toast.className = `p-4 rounded-lg shadow-lg text-sm font-medium animate-fade-in ${bgColor} text-white border border-gray-600 max-w-sm`;
         toast.textContent = msg;
         document.getElementById('toastContainer').appendChild(toast);
@@ -833,7 +880,7 @@
         const container = document.getElementById('chatMessages');
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
-        
+
         // Auto-open chat if not already open
         if (activeTab !== 'chat') {
             console.log('Opening chat automatically for new message');
@@ -854,7 +901,23 @@
 
     function leaveCall() {
         if (confirm("Leave this call?")) {
-            window.location.href = '/dashboard/';
+            console.log("Leaving call...");
+
+            try {
+                // Stop tracks
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+                // Disconnect socket
+                if (socket) {
+                    socket.disconnect();
+                }
+            } catch (e) {
+                console.error("Error during cleanup:", e);
+            } finally {
+                // Redirect ALWAYS
+                window.location.assign('/dashboard/');
+            }
         }
     }
 

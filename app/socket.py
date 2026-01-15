@@ -71,6 +71,8 @@ def handle_join(data):
     # Add user to room first
     rooms[meeting_id][request.sid] = {'name': name, 'role': role}
     
+    print(f"DEBUG: Current rooms[meeting_id]: {rooms[meeting_id]}")
+    
     # Send existing participants to new user
     participant_list = []
     for sid, n in rooms[meeting_id].items():
@@ -78,9 +80,11 @@ def handle_join(data):
             p_name = n['name'] if isinstance(n, dict) else str(n)
             participant_list.append({'sid': sid, 'name': p_name})
         
+    print(f"DEBUG: Sending room_info to {request.sid} with {len(participant_list)} participants")
     emit('room_info', {'users': participant_list}, room=request.sid)
     
     # Notify all users (including self) about new joiner
+    print(f"DEBUG: Broadcasting user_joined for {name} ({request.sid}) to room {meeting_id}")
     emit('user_joined', {'sid': request.sid, 'name': name}, room=meeting_id)
     print(f"User {name} ({request.sid}) joined meeting {meeting_id} as {role}. Total users: {len(rooms[meeting_id])}")
 

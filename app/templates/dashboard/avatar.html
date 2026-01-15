@@ -82,6 +82,37 @@
 
 <script>
     checkAuth();
+    
+    // Initialize Socket.IO
+    const socket = io();
+    let currentLoadingId = null;
+
+    socket.on('connect', () => {
+        console.log('Socket connected');
+        const user = JSON.parse(localStorage.getItem('auralis_user') || '{}');
+        if (user.id) {
+            socket.emit('register_session', { user_id: user.id });
+        }
+    });
+
+    socket.on('avatar_response', (data) => {
+        if (currentLoadingId) {
+            removeMessage(currentLoadingId);
+            currentLoadingId = null;
+        }
+        if (data.message) {
+            addMessage(data.message, 'ai');
+        }
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        if (currentLoadingId) {
+            removeMessage(currentLoadingId);
+            addMessage("Connection error. Please try again.", 'ai');
+            currentLoadingId = null;
+        }
+    });
 
     async function handleChatSubmit(e) {
         e.preventDefault();
@@ -93,20 +124,19 @@
         addMessage(message, 'user');
         input.value = '';
 
-        // Simulate AI Response (Loading)
-        const loadingId = addLoadingIndicator();
+        // Add Loading Indicator
+        currentLoadingId = addLoadingIndicator();
 
-        // TODO: Integrate actual Backend API here
-        // For now, simulate delay and response
-        setTimeout(() => {
-            removeMessage(loadingId);
-            addMessage("I'm currently in demo mode. My backend is being connected, but I can tell you that your dashboard looks great!", 'ai');
-        }, 1500);
+        // Send to Backend
+        socket.emit('chat_with_avatar', { message: message });
     }
 
     function addMessage(text, sender) {
         const history = document.getElementById('chatHistory');
         const isUser = sender === 'user';
+
+        // Convert newlines to <br> for AI response
+        const formattedText = text.replace(/\n/g, '<br>');
 
         const html = `
             <div class="flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-slide-in">
@@ -118,7 +148,7 @@
                 <div class="space-y-1 ${isUser ? 'flex flex-col items-end' : ''}">
                     <div class="font-bold text-sm text-[#1a1c1e] dark:text-white">${isUser ? 'You' : 'Auralis Avatar'}</div>
                     <div class="p-4 rounded-2xl ${isUser ? 'rounded-tr-none bg-brand-500 text-white shadow-brand-500/20' : 'rounded-tl-none bg-white dark:bg-white/5 border border-gray-100 dark:border-gray-800'} text-sm leading-relaxed shadow-sm max-w-2xl">
-                        ${text}
+                        ${formattedText}
                     </div>
                 </div>
             </div>
@@ -135,7 +165,7 @@
         const html = `
             <div id="${id}" class="flex gap-4 animate-pulse">
                 <div class="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0">
-                     <span class="material-symbols-outlined text-brand-500">smart_toy</span>
+                    <span class="material-symbols-outlined text-brand-500">smart_toy</span>
                 </div>
                 <div class="space-y-1">
                     <div class="font-bold text-sm text-[#1a1c1e] dark:text-white">Auralis Avatar</div>

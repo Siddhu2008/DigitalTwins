@@ -2,7 +2,7 @@ import os
 from flask import request, jsonify, current_app
 from werkzeug.utils import secure_filename
 from app.meetings import meetings_bp
-from app.meetings.services import save_meeting_metadata, mock_process_meeting, get_meeting_by_id, get_summary_by_meeting_id, get_user_meetings
+from app.meetings.services import save_meeting_metadata, process_meeting, get_meeting_by_id, get_summary_by_meeting_id, get_user_meetings
 from app.auth.utils import token_required
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'wav', 'mp3'}
@@ -32,8 +32,8 @@ def upload(current_user):
         # Save metadata
         meeting_id = save_meeting_metadata(str(current_user['_id']), filename, filename)
         
-        # Trigger processing (Mock)
-        mock_process_meeting(meeting_id)
+        # Trigger processing (Real)
+        process_meeting(meeting_id)
         
         return jsonify({'message': 'File uploaded and processed', 'meeting_id': meeting_id}), 201
     

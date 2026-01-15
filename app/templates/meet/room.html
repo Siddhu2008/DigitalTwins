@@ -69,12 +69,6 @@
 
             <!-- Toast Notifications -->
             <div id="toastContainer" class="absolute top-4 right-4 z-50 flex flex-col gap-2"></div>
-
-            <!-- Connection Status -->
-            <div id="connectionStatus"
-                class="absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-4 py-1 rounded-full text-xs font-bold hidden shadow-lg backdrop-blur-sm z-50">
-                Disconnected
-            </div>
         </div>
 
         <!-- RIGHT SIDEBARS -->
@@ -117,6 +111,80 @@
                     <!-- Participant Items -->
                 </div>
             </div>
+
+            <!-- AGENDA CONTENT (Host Only) -->
+            <div id="agendaView" class="hidden flex-1 flex flex-col overflow-hidden p-5">
+                <div class="mb-4 flex justify-between items-center">
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">Private Agenda</h4>
+                        <p class="text-xs text-gray-500">Only you can see this.</p>
+                    </div>
+                </div>
+                <textarea id="agendaInput"
+                    class="w-full flex-1 bg-[#3c4043] rounded-lg p-4 text-sm text-gray-200 resize-none outline-none focus:ring-1 focus:ring-blue-500 font-mono leading-relaxed"
+                    placeholder="Type your meeting agenda notes here..."
+                    onblur="saveAgenda()">{{ meeting.agenda }}</textarea>
+                <div class="mt-2 text-xs text-gray-500 text-right" id="agendaStatus">Changes saved</div>
+            </div>
+
+            <!-- TRANSCRIPT CONTENT -->
+            <div id="transcriptView" class="hidden flex-1 flex flex-col overflow-hidden p-5">
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">Live Transcript</h4>
+                    <p class="text-xs text-gray-500">Real-time speech to text.</p>
+                </div>
+                <div id="transcriptList" class="flex-1 overflow-y-auto space-y-4 pr-2 font-mono text-sm">
+                    <!-- Transcripts go here -->
+                </div>
+            </div>
+
+            <!-- DELEGATE CONTENT -->
+            <div id="delegateView" class="hidden flex-1 flex flex-col overflow-hidden p-5">
+                <div class="mb-6">
+                    <h4 class="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">AI Delegate</h4>
+                    <p class="text-xs text-gray-500">Your digital twin can attend this meeting for you.</p>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-[#3c4043] p-4 rounded-xl">
+                        <label class="block text-xs font-medium text-gray-400 uppercase mb-2">Speaking Style</label>
+                        <select id="delegateStyle"
+                            class="w-full bg-[#202124] text-white rounded-lg px-3 py-2 text-sm outline-none border border-gray-600 focus:border-blue-500">
+                            <option value="professional">Professional & Concise</option>
+                            <option value="friendly">Friendly & Casual</option>
+                            <option value="detailed">Detailed & Analytical</option>
+                            <option value="enthusiastic">Enthusiastic & High Energy</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-[#3c4043] p-4 rounded-xl">
+                        <label class="block text-xs font-medium text-gray-400 uppercase mb-2">Status</label>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium">Enable Digital Twin</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="delegateToggle" class="sr-only peer"
+                                    onchange="toggleDelegate(this.checked)">
+                                <div
+                                    class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600">
+                                </div>
+                            </label>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-400">
+                            When enabled, your AI will listen to the meeting and respond when you are mentioned or asked
+                            a question.
+                        </p>
+                    </div>
+
+                    <div id="delegateActiveBg"
+                        class="hidden p-4 rounded-xl bg-gradient-to-br from-blue-900/50 to-purple-900/50 border border-blue-500/30">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="material-symbols-outlined text-blue-400 animate-pulse">smart_toy</span>
+                            <span class="text-sm font-bold text-blue-100">AI Active</span>
+                        </div>
+                        <p class="text-xs text-blue-200">Processing meeting context...</p>
+                    </div>
+                </div>
+            </div>
         </aside>
     </div>
 
@@ -137,8 +205,12 @@
                 class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
                 <span class="material-symbols-outlined">closed_caption</span>
             </button>
+            <button onclick="openTab('transcripts')" id="btnTranscripts"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10" title="View Transcripts">
+                <span class="material-symbols-outlined">description</span>
+            </button>
 
-            <button onclick="leaveCall()" title="End Call"
+            <button onclick="leaveCall()"
                 class="w-20 h-10 rounded-3xl bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all shadow-lg shadow-red-500/30">
                 <span class="material-symbols-outlined text-white">call_end</span>
             </button>
@@ -164,6 +236,17 @@
                 class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
                 <span class="material-symbols-outlined">group</span>
             </button>
+            <button onclick="toggleAIDelegate()" id="btnAI"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10" title="Delegate to AI">
+                <span class="material-symbols-outlined">smart_toy</span>
+            </button>
+
+            {% if current_user_id == meeting.host_id %}
+            <button onclick="openTab('agenda')" id="btnAgenda"
+                class="ctrl-btn bg-white/10 hover:bg-white/20 border border-white/10">
+                <span class="material-symbols-outlined">view_agenda</span>
+            </button>
+            {% endif %}
         </div>
     </footer>
 </div>
@@ -315,8 +398,7 @@
 
 <script>
     const meetingId = "{{ meeting_id }}";
-    // Force websocket transport for better stability
-    const socket = io({ transports: ['websocket'], upgrade: false });
+    const socket = io();
     const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
     // --- STATE ---
@@ -326,32 +408,6 @@
     let isVideo = true, isAudio = true, isCaptions = false, isHandRaised = false;
     let activeTab = null;
     let meetingStartTime = null;
-
-    // --- SOCKET MONITORING ---
-    socket.on('connect', () => {
-        console.log("Socket connected:", socket.id);
-        const el = document.getElementById('connectionStatus');
-        el.classList.add('hidden');
-        el.textContent = "Connected";
-        el.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-green-500/90 text-white px-4 py-1 rounded-full text-xs font-bold hidden shadow-lg backdrop-blur-sm z-50";
-
-        // Re-join if this was a reconnect
-        if (myName && meetingId) {
-            socket.emit('join_meeting', { meetingId, name: myName });
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log("Socket disconnected");
-        const el = document.getElementById('connectionStatus');
-        el.textContent = "Disconnected - Trying to reconnect...";
-        el.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm z-50";
-        el.classList.remove('hidden');
-    });
-
-    socket.on('connect_error', (err) => {
-        console.error("Socket error:", err);
-    });
 
     // --- RECOGNITION (Captions) ---
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -372,7 +428,6 @@
     }
 
     // --- INITIALIZATION ---
-    // --- INITIALIZATION ---
     async function init() {
         // Set meeting start time
         meetingStartTime = new Date();
@@ -387,35 +442,27 @@
         myName = userCache.name || prompt("Enter your name:") || "Guest_" + Math.floor(Math.random() * 999);
         document.getElementById('localNameDisplay').textContent = myName + " (You)";
 
-        // Try to get media, but join even if it fails
         try {
             localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             document.getElementById('localVideo').srcObject = localStream;
-            // Mute local video to prevent feedback loop
-            document.getElementById('localVideo').muted = true;
+
+            socket.emit('join_meeting', { meetingId, name: myName });
+            renderParticipants();
         } catch (e) {
             console.error('Media access error:', e.name, e.message);
-            let errorMsg = "Camera/Mic blocked or in use. Joining as viewer.";
+            let errorMsg = "Camera/Mic access denied.";
 
             if (e.name === 'NotReadableError' || e.message.includes('Device in use')) {
-                errorMsg = "Camera in use. Joining with audio/video OFF.";
+                errorMsg = "Camera is already in use by another application. Please close other apps using your camera and try again.";
             } else if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-                errorMsg = "Permission denied. Joining as viewer.";
+                errorMsg = "Please allow camera and microphone access.";
+            } else if (e.name === 'NotFoundError') {
+                errorMsg = "Camera or microphone not found on this device.";
             }
 
             showToast(errorMsg, 'error');
-            // Show placeholder since no video
-            document.getElementById('videoPlaceholder').classList.remove('hidden');
-            // Disable buttons
-            isVideo = false; isAudio = false;
-            toggleVideo(); toggleAudio();
+            console.error('Camera error:', errorMsg, e);
         }
-
-        // JOIN MEETING regardless of media success
-        console.log("Emitting join_meeting command...");
-        showToast("Joining meeting...", "info");
-        socket.emit('join_meeting', { meetingId, name: myName });
-        renderParticipants();
     }
 
     function updateMeetingDuration() {
@@ -439,8 +486,6 @@
 
     socket.on('user_joined', (data) => {
         console.log('User joined:', data);
-        if (data.sid === socket.id) return; // Prevent connecting to self
-
         showToast(`${data.name} joined`);
         initConnection(data.sid, data.name, false);
         updateParticipantCount();
@@ -475,7 +520,42 @@
 
     socket.on('caption_broadcast', (data) => {
         if (isCaptions) showCaptions(`${data.from}: ${data.text}`);
+
+        // Also append to transcript panel if it exists
+        if (document.getElementById('transcriptView')) {
+            renderTranscriptItem(data.from, data.text, new Date());
+        }
     });
+
+    socket.on('transcript_history', (data) => {
+        const container = document.getElementById('transcriptList');
+        if (container) {
+            container.innerHTML = '';
+            data.history.forEach(item => {
+                renderTranscriptItem(item.from, item.text, item.timestamp);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+    });
+
+    function renderTranscriptItem(speaker, text, time) {
+        const container = document.getElementById('transcriptList');
+        if (!container) return;
+
+        const div = document.createElement('div');
+        div.className = "flex flex-col mb-3 pb-2 border-b border-gray-700/50";
+        const timeStr = typeof time === 'string' ? new Date(time).toLocaleTimeString() : time.toLocaleTimeString();
+
+        div.innerHTML = `
+            <div class="flex items-center gap-2 mb-1">
+                <span class="font-bold text-blue-400 text-xs">${speaker}</span>
+                <span class="text-[10px] text-gray-500">${timeStr}</span>
+            </div>
+            <p class="text-gray-300 leading-snug">${text}</p>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
 
     // --- SIGNALING HANDLER ---
     socket.on('signal', async (data) => {
@@ -624,9 +704,19 @@
 
             // For some browsers, onnegotiationneeded may not fire automatically
             // So we manually create an offer after a short delay
-            // Manual offer fallback removed to prevent glare/race conditions
-            // onnegotiationneeded is reliable in modern browsers
-
+            setTimeout(async () => {
+                if (peers[sid] && pc.signalingState === 'stable' && !peers[sid].offerSent) {
+                    try {
+                        console.log(`Manually creating offer for ${sid}`);
+                        const offer = await pc.createOffer();
+                        await pc.setLocalDescription(offer);
+                        peers[sid].offerSent = true;
+                        socket.emit('signal', { type: 'offer', data: offer, to: sid });
+                    } catch (e) {
+                        console.error(`Error manually creating offer for ${sid}:`, e);
+                    }
+                }
+            }, 500);
         }
     }
 
@@ -640,20 +730,12 @@
         el.id = 'video-' + sid;
         el.className = "relative bg-[#3c4043] rounded-3xl overflow-hidden flex items-center justify-center border-2 border-white/5 shadow-2xl group transition-all duration-500 hover:border-brand-500/50";
         el.innerHTML = `
-            <video autoplay playsinline controls class="w-full h-full object-cover"></video>
+            <video autoplay playsinline class="w-full h-full object-cover"></video>
             <div class="absolute bottom-6 left-6 glass px-4 py-2 rounded-2xl text-sm font-bold shadow-lg font-outfit">
                 ${name}
             </div>
         `;
-        const videoEl = el.querySelector('video');
-        videoEl.srcObject = stream;
-
-        // Explicitly try to play
-        videoEl.play().catch(e => {
-            console.error("Auto-play failed for remote video:", e);
-            showToast("Click play on the video if it doesn't start", "info");
-        });
-
+        el.querySelector('video').srcObject = stream;
         document.getElementById('videoGrid').appendChild(el);
     }
 
@@ -667,8 +749,12 @@
 
         activeTab = tab;
         sidebar.classList.remove('hidden');
-        document.getElementById('chatView').classList.add('hidden');
-        document.getElementById('participantsView').classList.add('hidden');
+
+        // Hide all views
+        ['chatView', 'participantsView', 'agendaView', 'transcriptView', 'delegateView'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
 
         // Reset tool buttons
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
@@ -683,19 +769,48 @@
             document.getElementById('sidebarTitle').textContent = "People";
             document.getElementById('btnParticipants').classList.add('active-tool');
             renderParticipants();
-        } else if (tab === 'info') {
-            const url = `${window.location.origin}/meet/${meetingId}`;
-            navigator.clipboard.writeText(url);
-            showToast("Meeting link copied to clipboard");
-            activeTab = null;
-            sidebar.classList.add('hidden');
+        } else if (tab === 'agenda') {
+            document.getElementById('agendaView').classList.remove('hidden');
+            document.getElementById('sidebarTitle').textContent = "Private Agenda";
+            document.getElementById('btnAgenda').classList.add('active-tool');
+        } else if (tab === 'transcripts') {
+            document.getElementById('transcriptView').classList.remove('hidden');
+            document.getElementById('sidebarTitle').textContent = "Transcripts";
+            document.getElementById('btnCaptions').classList.add('active-tool'); // Reuse captions button or new one
+            socket.emit('request_transcripts', { meetingId });
+        } else if (tab === 'delegate') {
+            document.getElementById('delegateView').classList.remove('hidden');
+            document.getElementById('sidebarTitle').textContent = "AI Delegate";
+            document.getElementById('btnAI').classList.add('active-tool');
         }
     }
 
-    function closeSidebar() {
-        document.getElementById('rightSidebar').classList.add('hidden');
-        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active-tool'));
-        activeTab = null;
+    function saveAgenda() {
+        const text = document.getElementById('agendaInput').value;
+        fetch(`/meet/${meetingId}/agenda`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ agenda: text })
+        }).then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const status = document.getElementById('agendaStatus');
+                    status.textContent = "Saved at " + new Date().toLocaleTimeString();
+                    status.classList.add('text-green-500');
+                    setTimeout(() => status.classList.remove('text-green-500'), 2000);
+                }
+            });
+    }
+
+    function toggleDelegate(enabled) {
+        const style = document.getElementById('delegateStyle').value;
+        if (enabled) {
+            document.getElementById('delegateActiveBg').classList.remove('hidden');
+            socket.emit('enable_ai_delegate', { meetingId, name: myName, style, userId: "{{ current_user_id }}" });
+        } else {
+            // Logic to disable if we want to implement it, currently enabling is one-way in socket.py
+            document.getElementById('delegateActiveBg').classList.add('hidden');
+        }
     }
 
     function renderParticipants() {
@@ -828,6 +943,15 @@
         setTimeout(() => div.remove(), 2000);
     }
 
+    function toggleAIDelegate() {
+        const style = prompt("Enable AI Delegate? Enter speaking style (e.g. 'friendly', 'professional', 'sarcastic'):", "professional");
+        if (style) {
+            socket.emit('enable_ai_delegate', { meetingId, name: myName, style });
+            document.getElementById('btnAI').classList.add('text-brand-500', 'bg-brand-500/10');
+            showToast("AI Delegate Enabled. It will respond when you are mentioned.");
+        }
+    }
+
     function shareScreen() {
         navigator.mediaDevices.getDisplayMedia({ video: true }).then(stream => {
             const track = stream.getVideoTracks()[0];
@@ -900,24 +1024,25 @@
     }
 
     function leaveCall() {
-        if (confirm("Leave this call?")) {
-            console.log("Leaving call...");
+        const isHost = "{{ current_user_id }}" === "{{ meeting.host_id }}";
 
-            try {
-                // Stop tracks
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                }
-                // Disconnect socket
-                if (socket) {
-                    socket.disconnect();
-                }
-            } catch (e) {
-                console.error("Error during cleanup:", e);
-            } finally {
-                // Redirect ALWAYS
-                window.location.assign('/dashboard/');
+        if (isHost) {
+            if (confirm("End meeting for everyone and generate AI summary?")) {
+                showToast("Ending meeting and processing summary...", 'info');
+                fetch(`/meet/${meetingId}/end`, { method: 'POST' })
+                    .then(() => {
+                        window.location.href = '/dashboard/summary_of_meetings'; // Redirect to summaries
+                    })
+                    .catch(e => {
+                        console.error(e);
+                        window.location.href = '/dashboard/';
+                    });
+                return;
             }
+        }
+
+        if (confirm("Leave this call?")) {
+            window.location.href = '/dashboard/';
         }
     }
 

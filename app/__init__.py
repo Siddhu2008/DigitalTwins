@@ -6,7 +6,8 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    mongo.init_app(app)
+    import certifi
+    mongo.init_app(app, tlsCAFile=certifi.where())
 
     from app.oauth import oauth
     oauth.init_app(app)

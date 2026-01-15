@@ -1,0 +1,6 @@
+Speaker 1: Hello everyone, let's start the meeting properly.
+Speaker 2: Yes, we need to discuss the project timeline.
+Speaker 1: I think we should aim for a beta release in two weeks.
+Speaker 3: That seems aggressive. We still need to finalize the database schema.
+Speaker 2: I agree with Speaker 3. Let's say three weeks.
+Speaker 1: Okay, three weeks it is. New deadline is August 25th.

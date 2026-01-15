@@ -148,7 +148,151 @@ def handle_hand():
 
 @socketio.on('caption_broadcast')
 def handle_caption(data):
+    from app.db import mongo
+    from datetime import datetime
+    
+    room_id = None
     for rid, users in rooms.items():
         if request.sid in users:
-            emit('caption_broadcast', {'from': users[request.sid]['name'], 'text': data.get('text')}, room=rid, include_self=False)
+            room_id = rid
             break
+            
+    print(f"DEBUG: caption_broadcast received from {request.sid} in room {room_id}")
+    if room_id:
+        speaker_name = rooms[room_id][request.sid]['name']
+        text = data.get('text')
+        print(f"DEBUG: Speaker: {speaker_name}, Text: {text}")
+        
+        # 1. Save Transcript
+        try:
+            mongo.db.transcripts.insert_one({
+                'meeting_id': room_id,
+                'speaker': speaker_name,
+                'text': text,
+                'timestamp': datetime.utcnow()
+            })
+            print(f"DEBUG: Transcript saved to DB")
+        except Exception as e:
+            print(f"DEBUG: Failed to save transcript: {e}")
+        
+        emit('caption_broadcast', {'from': speaker_name, 'text': text}, room=room_id, include_self=False)
+        
+        # 2. AI Delegate Logic
+        if 'ai_delegates' in rooms[room_id]:
+            print(f"DEBUG: Checking {len(rooms[room_id]['ai_delegates'])} AI delegates")
+            for delegate_user in rooms[room_id]['ai_delegates']:
+                print(f"DEBUG: Comparing '{delegate_user['name'].lower()}' with '{text.lower()}'")
+                if delegate_user['name'].lower() in text.lower() or "you" in text.lower():
+                    # Only trigger if the speaker is NOT the delegate themselves
+                    if speaker_name != delegate_user['name']:
+                        print(f"DEBUG: AI Delegate trigger matched for {delegate_user['name']}")
+                        process_ai_delegate_response(room_id, delegate_user, text, speaker_name)
+
+def process_ai_delegate_response(meeting_id, delegate, context_text, speaker_name):
+    """
+    Delegate: {name, style, user_id}
+    """
+    import google.generativeai as genai
+    import os
+    from app.meetings.persona_service import PersonaService
+    
+    try:
+        genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+        model = genai.GenerativeModel('gemini-flash-latest')
+        
+        # Get personalized prompt
+        persona_service = PersonaService()
+        user_id = delegate.get('user_id')
+        system_prompt = None
+        if user_id:
+             system_prompt = persona_service.get_system_prompt(user_id)
+             
+        if not system_prompt:
+             # Fallback default
+             system_prompt = f"""
+             You are acting as a digital twin for {delegate['name']}.
+             Your speaking style is: {delegate.get('style', 'professional')}.
+             """
+        
+        prompt = f"""
+        {system_prompt}
+        
+        Context from meeting: 
+        Speaker ({speaker_name}) said: "{context_text}"
+        
+        Respond briefly (under 2 sentences) as if you are {delegate['name']} attending the meeting.
+        """
+        
+        response = model.generate_content(prompt)
+        reply = response.text
+        
+        # Emit as a special chat message
+        socketio.emit('chat_message', {
+            'sid': 'AI_DELEGATE',
+            'from': f"{delegate['name']} (AI)",
+            'message': reply,
+            'is_ai': True
+        }, room=meeting_id)
+        
+    except Exception as e:
+        print(f"AI Delegate Error: {e}")
+
+@socketio.on('request_transcripts')
+def handle_request_transcripts(data):
+    meeting_id = data.get('meetingId')
+    from app.db import mongo
+    
+    # Get all past transcripts
+    cursor = mongo.db.transcripts.find({'meeting_id': meeting_id}).sort('timestamp', 1)
+    history = []
+    for t in cursor:
+        history.append({
+            'from': t.get('speaker'),
+            'text': t.get('text'),
+            'timestamp': t.get('timestamp').isoformat()
+        })
+    emit('transcript_history', {'history': history}, room=request.sid)
+
+@socketio.on('enable_ai_delegate')
+def handle_enable_ai_delegate(data):
+    # data: { meetingId, name, style, userId }
+    meeting_id = data.get('meetingId')
+    if meeting_id in rooms:
+        if 'ai_delegates' not in rooms[meeting_id]:
+            rooms[meeting_id]['ai_delegates'] = []
+            
+        # Add to delegates if not exists
+        exists = any(d['name'] == data['name'] for d in rooms[meeting_id]['ai_delegates'])
+        if not exists:
+            rooms[meeting_id]['ai_delegates'].append({
+                'name': data.get('name'),
+                'style': data.get('style', 'helpful and concise'),
+                'user_id': data.get('userId')  # Store user_id for persona lookup
+            })
+            emit('chat_message', {
+                'sid': 'SYSTEM',
+                'from': 'System',
+                'message': f"AI Delegate enabled for {data.get('name')}"
+            }, room=meeting_id)
+
+@socketio.on('chat_with_avatar')
+def handle_avatar_chat(data):
+    import google.generativeai as genai
+    import os
+    
+    user_message = data.get('message')
+    if not user_message:
+        return
+        
+    try:
+        genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+        model = genai.GenerativeModel('gemini-flash-latest')
+        
+        # Simple prompt for helpful assistant
+        chat = model.start_chat(history=[])
+        response = chat.send_message(user_message)
+        
+        emit('avatar_response', {'message': response.text})
+    except Exception as e:
+        print(f"Avatar Chat Error: {e}")
+        emit('avatar_response', {'message': "I'm having trouble connecting to my brain right now. Please try again later."})

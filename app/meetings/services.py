@@ -20,29 +20,76 @@ def get_meeting_by_id(meeting_id):
 def get_user_meetings(user_id):
     return list(mongo.db.meetings.find({'user_id': user_id}).sort('created_at', -1))
 
-def mock_process_meeting(meeting_id):
-    # Simulate AI processing
-    summary = {
-        'meeting_id': meeting_id,
-        'summary_text': "This was a productive meeting discussing the project roadmap. Key decisions were made regarding the tech stack and timeline.",
-        'key_points': [
-            "Use Flask for backend",
-            "Use Tailwind for frontend",
-            "MVP deadline is in 2 weeks"
-        ],
-        'action_items': [
-            "Setup repo",
-            "Design database schema",
-            "Create initial UI mockups"
-        ]
-    }
+import os
+import google.generativeai as genai
+from flask import current_app
+import json
+
+def process_meeting(meeting_id):
+    meeting = mongo.db.meetings.find_one({'_id': ObjectId(meeting_id)})
+    if not meeting:
+        return None
+        
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    file_path = os.path.join(upload_folder, meeting['filename'])
     
-    mongo.db.summaries.insert_one(summary)
-    mongo.db.meetings.update_one(
-        {'_id': ObjectId(meeting_id)},
-        {'$set': {'status': 'completed'}}
-    )
-    return summary
+    try:
+        # Simple text handling for now. For audio, would need to use genai.upload_file
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+            
+        genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+        model = genai.GenerativeModel('gemini-flash-latest')
+        
+        prompt = f"""
+        Analyze the following meeting transcript/notes and provide a summary.
+        Return the response in STRICT JSON format with the following keys:
+        - summary_text (string): A concise summary or abstract.
+        - key_points (list of strings): The main points discussed.
+        - action_items (list of strings): Tasks or actions to be taken.
+        
+        Transcript:
+        {content}
+        """
+        
+        response = model.generate_content(prompt)
+        text_response = response.text
+        
+        # Clean up code blocks if present
+        if text_response.startswith('```json'):
+            text_response = text_response.replace('```json', '').replace('```', '')
+            
+        try:
+            ai_data = json.loads(text_response)
+        except json.JSONDecodeError:
+            # Fallback if JSON fails
+            ai_data = {
+                'summary_text': text_response,
+                'key_points': [],
+                'action_items': []
+            }
+            
+        summary = {
+            'meeting_id': meeting_id,
+            'summary_text': ai_data.get('summary_text', 'No summary available.'),
+            'key_points': ai_data.get('key_points', []),
+            'action_items': ai_data.get('action_items', [])
+        }
+        
+        mongo.db.summaries.insert_one(summary)
+        mongo.db.meetings.update_one(
+            {'_id': ObjectId(meeting_id)},
+            {'$set': {'status': 'completed'}}
+        )
+        return summary
+        
+    except Exception as e:
+        print(f"Error processing meeting with Gemini: {e}")
+        mongo.db.meetings.update_one(
+            {'_id': ObjectId(meeting_id)},
+            {'$set': {'status': 'failed'}}
+        )
+        return None
 
 def update_meeting_end_status(meeting_id):
     """Updates the meeting status to 'ended' in both meetings and active_meetings collections."""

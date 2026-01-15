@@ -14,6 +14,10 @@ def create_app(config_class=Config):
     from app.socket import socketio
     socketio.init_app(app, cors_allowed_origins="*")
 
+    # Fix for running behind a proxy (like Nginx/Render)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     oauth.register(
         name='google',
         client_id=app.config['GOOGLE_CLIENT_ID'],

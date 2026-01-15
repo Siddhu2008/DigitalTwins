@@ -8,3 +8,5 @@ PyJWT
 authlib
 requests
 flask-socketio
+gunicorn
+eventlet
